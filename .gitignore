@@ -1,0 +1,13 @@
+# never publish: data, secrets, state, caches
+*.db
+*.sqlite
+.env
+.env.*
+secrets/
+data/
+**/logs/
+*.log
+__pycache__/
+*.pyc
+.venv/
+.DS_Store

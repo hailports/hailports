@@ -1,0 +1,14 @@
+{
+  plugins: {
+    myos: {
+      gatewayUrl: "http://127.0.0.1:8330",
+      adminUrl: "http://127.0.0.1:8310",
+    },
+  },
+  tools: {
+    allow: [
+      "myos",
+      "myos_tool_invoke",
+    ],
+  },
+}

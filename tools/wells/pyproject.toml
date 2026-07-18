@@ -1,0 +1,40 @@
+[project]
+name = "coding-harness"
+version = "0.2.0"
+description = "Wells — a model-agnostic agentic coding harness (planner/architect/coder/tester/reviewer) that actually edits files and runs tests."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "certifi>=2024.0.0",
+    "langchain-openai>=1.3.3",
+    "langgraph>=1.2.6",
+    "mcp>=1.28.0",
+    "prompt-toolkit>=3.0.52",
+    "python-dotenv>=1.2.2",
+    "textual>=1.0.0",
+    "rich>=15.0.0",
+    "truststore>=0.9.1",
+    "watchdog>=4.0",
+    "wells-index>=0.1.0",
+]
+
+[project.scripts]
+coding-harness = "coding_harness.main:main"
+coding-harness-mcp = "coding_harness.mcp_server:main"
+wells = "coding_harness.main:main"
+wells-mcp = "coding_harness.mcp_server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/coding_harness"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/coding_harness/AGENT.md" = "coding_harness/AGENT.md"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

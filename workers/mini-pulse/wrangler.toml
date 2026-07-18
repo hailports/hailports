@@ -1,0 +1,11 @@
+name = "mini-pulse"
+main = "src/worker.js"
+compatibility_date = "2026-01-01"
+workers_dev = true
+
+[[kv_namespaces]]
+binding = "PULSE"
+id = "cc278eb9a30a4cdaa7391d03dcdb63e3"
+
+[triggers]
+crons = ["*/5 * * * *"]

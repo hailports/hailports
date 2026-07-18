@@ -1,0 +1,29 @@
+# User configuration template — safe to ship; keep real identities in config/users.toml.
+# Each section is a user_id used by the WebUI and messaging agents.
+
+[admin]
+display_name = "Admin"
+telegram_id = 0
+imessage_handle = ""
+imessage_handles = []
+webui_username = "admin"
+default_model = "sonnet"
+work_email = ""
+sf_user_id = ""
+system_prompt_addon = "Primary admin user."
+
+# [admin.apple_mail_accounts]
+# "user@example.com" = { work_tier = true }
+# "user@example.com" = { work_tier = false }
+
+# [admin.known_contacts]
+# colleague_name = "user@example.com"
+
+# [partner]
+# display_name = "Partner"
+# telegram_id = 0
+# imessage_handle = ""
+# imessage_handles = []
+# webui_username = "partner"
+# default_model = "sonnet"
+# system_prompt_addon = "Secondary user for calendar and email management."

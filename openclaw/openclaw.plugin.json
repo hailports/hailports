@@ -1,0 +1,46 @@
+{
+  "id": "myos",
+  "name": "MyOS",
+  "description": "Expose MyOS integrations, retained browser sessions, admin policy, and autonomous revenue/travel workflows to OpenClaw.",
+  "contracts": {
+    "tools": [
+      "myos_health",
+      "myos_policy_get",
+      "myos_openclaw_identity",
+      "myos_sessions_inventory",
+      "myos_tools_search",
+      "myos_tool_invoke",
+      "myos_content_generator_status",
+      "myos_content_generator_configure",
+      "myos_content_generate",
+      "myos_revenue_queue",
+      "myos_approvals_list",
+      "myos_approval_dry_run",
+      "myos_approval_execute",
+      "myos_travel_flight_search",
+      "myos_sales_pipeline_report",
+      "myos_autonomy_contract"
+    ]
+  },
+  "activation": {
+    "onStartup": true
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "gatewayUrl": {
+        "type": "string",
+        "default": "http://127.0.0.1:8330"
+      },
+      "adminUrl": {
+        "type": "string",
+        "default": "http://127.0.0.1:8310"
+      },
+      "stackDir": {
+        "type": "string",
+        "default": "/path/to/claude-stack"
+      }
+    }
+  }
+}

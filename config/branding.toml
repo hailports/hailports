@@ -1,0 +1,14 @@
+# Tenant branding config — swap these to re-brand for a new customer.
+# No code changes required; all fields fall back to these defaults in code.
+
+[tenant]
+name = "CompanyA Industries"
+brand_mode = "CompanyA"
+salesforce_brand = "valley"
+salesforce_display_name = "VALLEY"
+
+[colors]
+# Primary navy / accent gold — replace hex values to change the doc theme
+primary = "#1B3A5C"
+primary_dark = "#2d5280"
+accent = "#C5A55A"

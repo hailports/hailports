@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#05080d">
+<link rel="preconnect" href="https://scan.hailports.com">
+<link rel="preconnect" href="https://intake.hailports.com" crossorigin>
+<title>Hailports — the autonomous stack that runs the business, now open source</title>
+<meta name="description" content="A self-running back office: keeps its own books, ships & rolls back its own deploys, runs in public. Read the code, watch it run live — source-safe, owner-gated. (Also: a free AI-visibility scan for your site.)">
+<link rel="canonical" href="https://www.hailports.com/">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="i open-sourced the system that runs my whole business — hailports">
+<meta property="og:description" content="A self-running back office: keeps its own books, ships & rolls back its own deploys, runs in public. Read the code, watch it run live — source-safe, owner-gated.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.hailports.com/">
+<meta property="og:site_name" content="hailports">
+<meta property="og:image" content="https://opengraph.githubassets.com/1/hailports/hailports">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="600">
+<meta property="og:image:alt" content="GitHub preview for the open-source hailports self-running back-office repository.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="i open-sourced the system that runs my whole business — hailports">
+<meta name="twitter:description" content="A self-running back office: keeps its own books, ships & heals its own deploys, runs in public. Read the code, watch it run live.">
+<meta name="twitter:image" content="https://opengraph.githubassets.com/1/hailports/hailports">
+<meta name="twitter:image:alt" content="GitHub preview for the open-source hailports self-running back-office repository.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2305080d'/%3E%3Ctext x='16' y='22' font-size='18' text-anchor='middle' fill='%2339d98a' font-family='monospace'%3E%E2%9D%AF%3C/text%3E%3C/svg%3E">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://www.hailports.com/#org","name":"hailports","url":"https://www.hailports.com/","description":"An autonomous back-office system that keeps its own books, ships and rolls back its own deploys, and runs a real business in public. The source code is openly published, and an anonymized live board shows aggregate metrics and source-safe activity as it runs. Owner-gated outward actions; no operator details are exposed.","image":"https://opengraph.githubassets.com/1/hailports/hailports","sameAs":["https://github.com/hailports","https://www.youtube.com/channel/UC_NaJ6WEpYsNlq-CIGD8yAw"]},{"@type":"WebSite","@id":"https://www.hailports.com/#site","url":"https://www.hailports.com/","name":"hailports","publisher":{"@id":"https://www.hailports.com/#org"},"inLanguage":"en"},{"@type":"SoftwareSourceCode","@id":"https://www.hailports.com/#code","name":"hailports","description":"The open-source autonomous back office behind this site: a double-entry ledger and an autonomous G&A process engine that ships and rolls back its own deploys. Outward actions stay owner-gated.","codeRepository":"https://github.com/hailports/hailports","url":"https://github.com/hailports/hailports","programmingLanguage":"Python","license":"https://spdx.org/licenses/MIT.html","isAccessibleForFree":true,"author":{"@id":"https://www.hailports.com/#org"},"maintainer":{"@id":"https://www.hailports.com/#org"}},{"@type":"Service","@id":"https://www.hailports.com/#service","name":"AI visibility scan & fix kit","serviceType":"AI search visibility audit","provider":{"@id":"https://www.hailports.com/#org"},"description":"A free scan grades whether AI assistants name and describe your business, then a fix kit corrects what they get wrong.","offers":[{"@type":"Offer","name":"free AI-visibility scan","price":"0","priceCurrency":"USD","url":"https://scan.hailports.com/hailports?scan=ai","availability":"https://schema.org/InStock"},{"@type":"Offer","name":"AI-visibility fix kit","price":"39","priceCurrency":"USD","url":"https://intake.hailports.com/buy?tier=geo_fix_kit","availability":"https://schema.org/InStock"}]}]}</script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#05080d; --bg2:#070b12; --panel:#0a121b; --panel2:#0c1622;
+    --line:#15212f; --grn:#39d98a; --cyn:#22d3ee; --ink:#e6f1ec; --mut:#8aa0b0;
+    --red:#ff6b81; --amb:#ffd479;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  html{scroll-behavior:smooth;overflow-x:clip;color-scheme:dark}
+  .skip{position:absolute;left:8px;top:-48px;z-index:200;background:var(--grn);color:var(--bg);padding:8px 14px;border-radius:0 0 8px 8px;font:600 13px/1 var(--mono);text-decoration:none}
+  .skip:focus{top:0}
+  img,svg,video,canvas{max-width:100%;height:auto}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;
+    -webkit-font-smoothing:antialiased;width:100%;max-width:100%;overflow-x:clip;
+    background:
+      radial-gradient(1100px 560px at 88% -8%,rgba(34,211,238,.10),transparent 60%),
+      radial-gradient(900px 500px at -8% 8%,rgba(57,217,138,.09),transparent 55%),
+      var(--bg);
+    min-height:100vh}
+  a{color:var(--cyn);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+  .mono{font-family:var(--mono)}
+
+  /* header */
+  header{position:sticky;top:0;z-index:20;backdrop-filter:blur(10px);
+    background:rgba(5,8,13,.72);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:58px;position:relative}
+  .nav-right{display:flex;align-items:center;gap:22px}
+  .navtoggle{display:none;background:rgba(10,18,27,.6);border:1px solid var(--line);color:var(--ink);
+    width:40px;height:40px;border-radius:9px;font-size:17px;line-height:1;cursor:pointer;padding:0;
+    align-items:center;justify-content:center}
+  .navtoggle:hover{border-color:var(--mut)}
+  .navtoggle:focus-visible{outline:2px solid var(--grn);outline-offset:2px}
+  .brand{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-weight:700;
+    font-size:17px;color:var(--ink);letter-spacing:-.01em}
+  .brand .mk{color:var(--grn)}
+  .nav-links{display:flex;align-items:center;gap:22px;font-size:14px}
+  .nav-links a{color:var(--mut)}
+  .nav-links a:hover{color:var(--ink);text-decoration:none}
+  .pill{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:12px;
+    letter-spacing:.14em;color:var(--cyn);border:1px solid var(--line);border-radius:999px;
+    padding:5px 11px;background:rgba(10,18,27,.6)}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--mut);transition:background .3s}
+  .dot.on{background:var(--grn);box-shadow:0 0 0 0 rgba(57,217,138,.7);animation:pulse 1.7s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(57,217,138,.55)}70%{box-shadow:0 0 0 12px rgba(57,217,138,0)}100%{box-shadow:0 0 0 0 rgba(57,217,138,0)}}
+
+  /* hero */
+  .hero{padding:74px 0 30px;text-align:center}
+  .hero .eyebrow{font-family:var(--mono);font-size:13px;color:var(--grn);letter-spacing:.16em;
+    text-transform:uppercase;margin-bottom:18px}
+  .hero h1{font-size:clamp(33px,6vw,62px);line-height:1.04;font-weight:800;letter-spacing:-.025em;
+    max-width:18ch;margin:0 auto 20px;overflow-wrap:break-word}
+  .hero h1 b{color:var(--grn);font-weight:800}
+  .hero h1 i{color:var(--cyn);font-style:normal}
+  .hero p.lead{font-size:clamp(16px,2.2vw,20px);color:var(--mut);max-width:60ch;margin:0 auto 30px;overflow-wrap:break-word}
+  .cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:9px;font-weight:600;font-size:15px;
+    padding:13px 22px;border-radius:11px;border:1px solid var(--line);transition:.16s}
+  .btn.pri{background:linear-gradient(180deg,#3ee29a,#2fb578);color:#04130c;border-color:transparent}
+  .btn.pri:hover{transform:translateY(-1px);text-decoration:none;box-shadow:0 8px 24px rgba(57,217,138,.22)}
+  .btn.sec{color:var(--ink);background:rgba(12,22,34,.6)}
+  .btn.sec:hover{border-color:var(--cyn);color:#fff;text-decoration:none}
+
+  /* dashboard */
+  .dash{margin:34px 0 12px}
+  .dash-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+    margin-bottom:14px;flex-wrap:wrap}
+  .dash-head h2{font-size:21px;font-weight:700;letter-spacing:-.01em}
+  .dash-head .dash-meta{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .dash-head .upd{font-family:var(--mono);font-size:12px;color:var(--mut)}
+  .yt{font-family:var(--mono);font-size:12.5px;color:#ff6b81;border:1px solid var(--line);border-radius:8px;
+    padding:6px 11px;white-space:nowrap;background:rgba(255,107,129,.06)}
+  .yt:hover{border-color:#ff6b81;color:#ff8a9b;text-decoration:none}
+  .ytwrap{margin-top:16px}
+  .ytposter{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+    width:100%;aspect-ratio:16/9;text-decoration:none;border-top:1px solid var(--line);
+    background:radial-gradient(circle at 50% 38%,#11212d,#05080d)}
+  .ytposter:hover{text-decoration:none}
+  .ytposter .play{width:76px;height:76px;border-radius:50%;background:#ff0033;color:#fff;display:flex;
+    align-items:center;justify-content:center;font-size:30px;padding-left:5px;
+    box-shadow:0 12px 34px rgba(255,0,51,.32);transition:.18s}
+  .ytposter:hover .play{transform:scale(1.08);background:#ff1a47}
+  .ytposter .ytcap{font-family:var(--mono);font-size:14px;color:var(--ink)}
+
+  /* ── live-stream HERO: the centerpiece. Fast click-to-load facade that swaps in the
+     real YouTube live embed on tap (keeps the page light; one heavy iframe only on intent). ── */
+  .streamhero{max-width:900px;margin:26px auto 12px;border:1px solid var(--line);border-radius:16px;
+    overflow:hidden;background:#05080d;box-shadow:0 18px 60px rgba(0,0,0,.45)}
+  .streamfacade{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:13px;width:100%;aspect-ratio:16/9;border:0;cursor:pointer;color:var(--ink);font-family:var(--sans);
+    background:radial-gradient(circle at 50% 36%,#13242f,#05080d);transition:.18s}
+  .streamfacade:hover{background:radial-gradient(circle at 50% 36%,#162c3a,#05080d)}
+  .streamfacade .play{width:84px;height:84px;border-radius:50%;background:#ff0033;color:#fff;display:flex;
+    align-items:center;justify-content:center;font-size:34px;padding-left:6px;
+    box-shadow:0 14px 40px rgba(255,0,51,.4);transition:.18s}
+  .streamfacade:hover .play{transform:scale(1.07);background:#ff1a47}
+  .streamfacade .streamcap{font-size:clamp(16px,2.5vw,22px);font-weight:700;letter-spacing:-.01em;
+    padding:0 20px;text-align:center;max-width:26ch;line-height:1.2}
+  .streamfacade .streamsub{font-family:var(--mono);font-size:12.5px;color:var(--mut)}
+  .livebadge{position:absolute;top:14px;left:14px;display:inline-flex;align-items:center;gap:8px;
+    font-family:var(--mono);font-size:11.5px;font-weight:700;letter-spacing:.12em;color:#fff;
+    background:rgba(255,0,51,.16);border:1px solid rgba(255,0,51,.5);border-radius:999px;padding:6px 12px}
+  .livebadge .lb-dot{width:9px;height:9px;border-radius:50%;background:#ff2d4f;animation:pulseR 1.7s infinite}
+  @keyframes pulseR{0%{box-shadow:0 0 0 0 rgba(255,45,79,.6)}70%{box-shadow:0 0 0 11px rgba(255,45,79,0)}100%{box-shadow:0 0 0 0 rgba(255,45,79,0)}}
+  .streamhero iframe{display:block;width:100%;aspect-ratio:16/9;border:0}
+  .streamnote{text-align:center;font-family:var(--mono);font-size:12.5px;color:var(--mut);margin:0 auto 2px}
+  .streamnote a{color:var(--cyn)}
+
+  .board{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:16px}
+  @media(max-width:820px){.board{grid-template-columns:minmax(0,1fr)}}
+  .card{border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,var(--panel),var(--bg2));
+    overflow:hidden;min-width:0}
+  .card .ch{display:flex;align-items:center;gap:9px;padding:12px 16px;border-bottom:1px solid var(--line);
+    font-family:var(--mono);font-size:13px;color:var(--mut)}
+  .tl{display:flex;gap:6px}.tl i{width:11px;height:11px;border-radius:50%;display:inline-block}
+  .tl .r{background:#ff5f56}.tl .y{background:#ffbd2e}.tl .g{background:#27c93f}
+  .ch b{color:var(--ink)}
+
+  .metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line)}
+  @media(max-width:520px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .tile{background:var(--panel2);padding:15px 15px 14px;min-height:92px;display:flex;flex-direction:column;
+    justify-content:center}
+  .tile .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,27px);font-weight:700;color:var(--grn);
+    line-height:1.05;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+  .tile .l{margin-top:6px;font-size:12.5px;font-weight:600;color:var(--ink)}
+  .tile .s{margin-top:3px;font-size:11px;color:var(--mut);line-height:1.35}
+  .flash{animation:flash .7s ease}
+  @keyframes flash{0%{color:var(--cyn);text-shadow:0 0 14px rgba(34,211,238,.5)}100%{}}
+  @media(prefers-reduced-motion:reduce){.dot.on,.livebadge .lb-dot,.flash{animation:none}html{scroll-behavior:auto}}
+
+  .feed{padding:12px 16px;font-family:var(--mono);font-size:13px;line-height:1.5;height:100%;
+    display:flex;flex-direction:column;min-width:0}
+  .feed .row{display:flex;gap:8px;padding:5px 0;border-bottom:1px dashed rgba(21,33,47,.7);white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .feed .row:last-child{border-bottom:0}
+  .h{color:var(--cyn)} .t{color:var(--amb)} .a{color:var(--grn)} .d{color:var(--red)}
+  .f{color:var(--mut)} .ag{color:var(--mut);margin-left:auto;padding-left:10px}
+  .commitbar{margin-top:auto;padding-top:11px;border-top:1px solid var(--line);font-size:12.5px;
+    color:var(--mut);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .commitbar .spark{color:var(--grn);letter-spacing:1px;font-size:15px}
+  .commitbar b{color:var(--ink)}
+
+  /* strip */
+  .strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:26px 0 4px}
+  .strip-head{grid-column:1/-1;font-size:21px;font-weight:700;letter-spacing:-.01em;margin:0}
+  @media(max-width:720px){.strip{grid-template-columns:1fr}}
+  .strip div{border:1px solid var(--line);border-radius:12px;padding:16px 17px;background:rgba(10,18,27,.45)}
+  .strip h3{font-size:14px;color:var(--cyn);font-family:var(--mono);margin-bottom:5px}
+  .strip p{font-size:13.5px;color:var(--mut)}
+
+  /* revenue band: proof -> point the machine at your business -> free scan / products
+     (reuses the existing .btn styles; mirrors the funnel band already on /live) */
+  .funnel{margin:30px 0 6px;border:1px solid var(--line);border-radius:16px;padding:28px 22px 30px;
+    background:linear-gradient(180deg,var(--panel),var(--bg2));text-align:center}
+  .funnel h2{font-size:clamp(19px,3vw,24px);font-weight:800;letter-spacing:-.02em;margin:0 0 8px}
+  .funnel p{color:var(--mut);max-width:56ch;margin:0 auto 20px;font-size:15px}
+  .funnel .fcta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+  /* guides */
+  .guides{margin:50px 0 30px}
+  .guides .gh{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    margin-bottom:6px}
+  .guides h2{font-size:21px;font-weight:700}
+  .guides .sub{color:var(--mut);font-size:14px;margin-bottom:16px;max-width:70ch}
+  #gsearch{width:100%;max-width:420px;padding:11px 14px;border-radius:10px;border:1px solid var(--line);
+    background:var(--panel);color:var(--ink);font-size:14px;font-family:var(--mono);margin-bottom:18px}
+  #gsearch:focus{outline:none;border-color:var(--cyn)}
+  ul.glist{list-style:none;columns:3;column-gap:26px}
+  @media(max-width:820px){ul.glist{columns:2}}
+  @media(max-width:520px){ul.glist{columns:1}}
+  ul.glist li{break-inside:avoid;margin:0 0 7px;font-size:13px;line-height:1.35}
+  ul.glist li a{color:var(--mut)}
+  ul.glist li a:hover{color:var(--grn)}
+  .gcount{font-family:var(--mono);font-size:12px;color:var(--mut)}
+
+  footer{border-top:1px solid var(--line);margin-top:40px;padding:26px 0 60px;
+    font-family:var(--mono);font-size:12px;color:var(--mut);line-height:1.7}
+  footer b{color:var(--ink)}
+
+  /* ── responsive: fluid fit, zero horizontal overflow on any viewport ── */
+  ul.glist li a{overflow-wrap:anywhere}
+  @media(max-width:820px){
+    .nav{height:auto;min-height:58px;padding:9px 0;gap:8px 16px;justify-content:space-between}
+    .navtoggle{display:inline-flex}
+    .nav-right{gap:12px}
+    .nav-links{position:absolute;top:calc(100% + 1px);left:0;right:0;z-index:40;
+      display:none;flex-direction:column;align-items:stretch;gap:0;
+      padding:4px 16px 10px;background:rgba(5,8,13,.98);backdrop-filter:blur(12px);
+      border-bottom:1px solid var(--line);box-shadow:0 16px 40px rgba(0,0,0,.55)}
+    .nav-links.open{display:flex}
+    .nav-links a{width:100%;padding:13px 2px;font-size:15px;color:var(--ink);border-top:1px solid var(--line)}
+    .nav-links a:first-child{border-top:0}
+  }
+  @media(max-width:600px){
+    .wrap{padding:0 16px}
+    .hero{padding:42px 0 26px}
+    .hero h1{font-size:clamp(28px,8vw,40px)}
+    .cta,.funnel .fcta{flex-direction:column;align-items:stretch;gap:11px}
+    .cta .btn,.funnel .fcta .btn{width:100%;justify-content:center}
+    .joinform{flex-direction:column}
+    .joinform input{min-width:0;width:100%}
+    .joinform .btn.pri{width:100%;justify-content:center}
+    .dash-head h2,.guides h2{font-size:19px}
+    .join{padding:26px 18px 28px}
+  }
+  @media(max-width:380px){
+    .hero h1{font-size:clamp(24px,8.6vw,33px)}
+    .yt{white-space:normal}
+  }
+</style>
+<noscript><style>@media(max-width:820px){.nav-links{position:static!important;display:flex!important;flex-direction:row;flex-wrap:wrap;justify-content:flex-end;gap:6px 14px;padding:0;background:none;border:0;box-shadow:none}.nav-links a{width:auto;border-top:0;padding:0;font-size:13px}.navtoggle{display:none!important}}</style></noscript>
+</head>
+<body>
+<a class="skip" href="#main">skip to content</a>
+<header>
+  <div class="wrap nav">
+    <div class="brand"><span class="mk">❯</span> hailports</div>
+    <div class="nav-right">
+      <nav class="nav-links" id="navlinks" aria-label="primary">
+        <a href="https://github.com/hailports" target="_blank" rel="noopener">the code ↗</a>
+        <a href="#dashboard">dashboard</a>
+        <a href="/ai-visibility/check">free scan</a>
+        <a href="/playbook">playbook</a>
+        <a href="/products.html">products</a>
+        <a href="/experiment">the experiment</a>
+        <a href="#guides">guides</a>
+        <a href="https://www.youtube.com/channel/UC_NaJ6WEpYsNlq-CIGD8yAw/live" target="_blank" rel="noopener">watch live ↗</a>
+      </nav>
+      <a class="pill" href="https://www.youtube.com/channel/UC_NaJ6WEpYsNlq-CIGD8yAw/live" target="_blank" rel="noopener" style="text-decoration:none"><span class="dot" id="livedot"></span> <span id="livetxt">CONNECTING</span> <span style="opacity:.65">↗</span></a>
+      <button class="navtoggle" id="navtoggle" type="button" aria-label="open menu" aria-expanded="false" aria-controls="navlinks">☰</button>
+    </div>
+  </div>
+</header>
+
+<main id="main" class="wrap">
+  <section class="hero">
+    <div class="eyebrow">autonomous &middot; building in public</div>
+    <h1>i built a system that runs the business &mdash; <b>then i made</b> <i>the code public.</i></h1>
+    <p class="lead">it keeps its own books, ships &amp; rolls back its own deploys, runs the org while i sleep. the board below is it working, right now -- source-safe, owner-gated, no black box. the hard part was never the code; it was knowing what to stop doing.</p>
+    <div class="cta">
+      <a class="btn pri" href="https://github.com/hailports">read the code &rarr; github.com/hailports</a>
+      <a class="btn sec" href="#join">subscribe to the daily log &rarr;</a>
+      <a class="btn sec" href="https://scan.hailports.com/hailports?scan=ai">free AI-visibility scan for your site &rarr;</a>
+    </div>
+    <div class="streamhero">
+      <button class="streamfacade" type="button" onclick="loadStream(this)"
+              onpointerover="warmStream()" onfocus="warmStream()"
+              aria-label="play the live YouTube stream — watch the AI run real business processes">
+        <span class="livebadge"><span class="lb-dot"></span> LIVE · 24/7</span>
+        <span class="play">▶</span>
+        <span class="streamcap">watch an AI run real business processes — live</span>
+        <span class="streamsub">the whole machine, streaming 24/7 on YouTube</span>
+      </button>
+    </div>
+    <p class="streamnote">can't see it? <a href="https://www.youtube.com/channel/UC_NaJ6WEpYsNlq-CIGD8yAw/live" target="_blank" rel="noopener">open the live stream on YouTube ↗</a></p>
+  </section>
+
+  <section class="dash" id="dashboard">
+    <div class="dash-head">
+      <h2>live dashboard</h2>
+      <span class="dash-meta">
+        <a class="yt" href="https://www.youtube.com/channel/UC_NaJ6WEpYsNlq-CIGD8yAw/live" target="_blank" rel="noopener">▶ watch live on YouTube ↗</a>
+        <span class="upd" id="updated">syncing…</span>
+      </span>
+    </div>
+    <div class="board">
+      <div class="card">
+        <div class="ch"><span class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></span> <b>metrics</b> — aggregate, anonymized</div>
+        <div class="metrics" id="metrics"><!--METRICS_FALLBACK--></div>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></span> <b>git --live</b> <span style="color:var(--mut)">// commits cloaked</span></div>
+        <div class="feed">
+          <div id="feed"></div>
+          <div class="commitbar">
+            <span class="spark" id="spark">▁▁▁▁▁▁▁▁▁▁▁▁▁▁</span>
+            <span><b id="ctotal">—</b> commits &middot; <span id="cweek">—</span>/wk &middot; ~<span id="cday">—</span>/day</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="strip">
+    <h2 class="strip-head">how the machine works</h2>
+    <div><h3>finds the work</h3><p>scans buyer-intent signals across markets, qualifies them, and lines up the next thing to build — no list-buying, no spray.</p></div>
+    <div><h3>builds + ships it</h3><p>spins the product, writes the code, deploys it, fulfills the order. ~220 scheduled jobs, self-healing, running around the clock.</p></div>
+    <div><h3>stays anonymous</h3><p>numbers are rounded + ranged, commits are cloaked, the operator stays out of frame — on purpose. proof over personality.</p></div>
+  </section>
+
+  <style>
+    /* ── open-source + what's-new: refreshed on a cadence by tools/hailports_site_refresh.py ── */
+    .opensrc{margin:26px 0 4px}
+    .os-card{border:1px solid var(--line);border-radius:16px;padding:24px 22px 22px;
+      background:linear-gradient(180deg,var(--panel),var(--bg2));position:relative;overflow:hidden}
+    .os-badge{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11.5px;
+      font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--grn);
+      border:1px solid var(--line);border-radius:999px;padding:5px 11px;background:rgba(57,217,138,.07);
+      margin-bottom:14px}
+    .os-badge .osd{width:8px;height:8px;border-radius:50%;background:var(--grn);
+      box-shadow:0 0 0 0 rgba(57,217,138,.6);animation:pulse 1.9s infinite}
+    .os-card h2{font-size:clamp(20px,3vw,25px);font-weight:800;letter-spacing:-.02em;margin:0 0 8px}
+    .os-card p{color:var(--mut);max-width:60ch;font-size:15px;margin:0 0 16px}
+    .os-cta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+    .os-repos{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    @media(max-width:720px){.os-repos{grid-template-columns:1fr}}
+    .os-repos li{border:1px solid var(--line);border-radius:11px;padding:13px 14px;
+      background:rgba(10,18,27,.45);font-size:13.5px;color:var(--mut);min-width:0}
+    .os-repos li .os-r{display:block;font-family:var(--mono);font-size:13px;color:var(--cyn);
+      margin-bottom:4px}
+
+    .whatsnew{margin:24px 0 4px}
+    .wn-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;
+      margin-bottom:12px}
+    .wn-head h2{font-size:21px;font-weight:700;letter-spacing:-.01em}
+    .wn-sub{font-family:var(--mono);font-size:12px;color:var(--mut)}
+    .wn-list{list-style:none;border:1px solid var(--line);border-radius:14px;overflow:hidden;
+      background:linear-gradient(180deg,var(--panel),var(--bg2))}
+    .wn-list li{display:flex;gap:11px;align-items:flex-start;padding:12px 16px;
+      border-bottom:1px solid var(--line);font-size:14px;color:var(--ink);min-width:0}
+    .wn-list li:last-child{border-bottom:0}
+    .wn-list li .wn-dot{flex:0 0 auto;margin-top:7px;width:7px;height:7px;border-radius:50%;
+      background:var(--grn)}
+    .wn-list li .wn-x{color:var(--mut)}
+  </style>
+  <section class="opensrc" id="opensource">
+    <div class="os-card">
+      <span class="os-badge"><span class="osd"></span> open source now</span>
+      <h2>the machine is open source</h2>
+      <p>the self-running back office is public — a double-entry ledger and a nine-seat autopilot org, plus a self-healing agent and a reusable dev kit. read the code, watch it run, fork what's useful.</p>
+      <div class="os-cta">
+        <a class="btn pri" href="https://github.com/hailports" target="_blank" rel="noopener">browse the code on GitHub →</a>
+      </div>
+      <ul class="os-repos">
+        <li><span class="os-r">self-running back office</span> double-entry ledger + a nine-seat autopilot org</li>
+        <li><span class="os-r">self-healing agent</span> watches the loops and restarts what breaks</li>
+        <li><span class="os-r">dev kit</span> the building blocks, packaged to reuse</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="whatsnew" id="whatsnew">
+    <div class="wn-head">
+      <h2>what the machine did recently</h2>
+      <span class="wn-sub">auto-updated &middot; source-safe by design</span>
+    </div>
+    <ul class="wn-list" id="wnlist">
+<!--WHATS_NEW_START-->
+      <li><span class="wn-dot"></span><span>open-sourced the self-running back office so anyone can read how it works</span></li>
+      <li><span class="wn-dot"></span><span>kept the live board streaming around the clock, self-healing as it went</span></li>
+      <li><span class="wn-dot"></span><span>shipped fresh build-in-public proof onto the board</span></li>
+<!--WHATS_NEW_END-->
+    </ul>
+  </section>
+
+  <section class="funnel">
+    <h2>want this running for your business?</h2>
+    <p>point the same machine at one narrow question: does AI name your business when buyers ask? the free scan shows what assistants say, which sources they miss, and what to fix first. the $39 kit turns that into corrections.</p>
+    <div class="fcta">
+      <a class="btn pri" href="https://scan.hailports.com/hailports?scan=ai">does AI name your business? free scan →</a>
+      <a class="btn sec" href="https://intake.hailports.com/buy?tier=geo_fix_kit">get the AI-visibility fix kit — $39 →</a>
+    </div>
+  </section>
+
+  <style>
+    .join{max-width:620px;margin:8px auto 0;text-align:center;padding:30px 22px 34px;
+      background:var(--panel);border:1px solid var(--line);border-radius:16px}
+    .join h2{margin:0 0 8px}
+    .join .sub{color:var(--mut);max-width:52ch;margin:0 auto 20px;font-size:15px}
+    .joinform{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;max-width:480px;margin:0 auto}
+    .joinform input{flex:1;min-width:220px;padding:13px 14px;border-radius:11px;border:1px solid var(--line);
+      background:var(--bg2);color:var(--ink);font-size:15px}
+    .joinform input:focus{outline:none;border-color:var(--grn)}
+    .joinform .btn.pri{white-space:nowrap}
+    .joinmsg{font-size:13px;color:var(--mut);min-height:18px;margin:12px 0 0}
+    .joinalt{font-size:14px;color:var(--mut);margin:16px 0 0}
+    .joinalt a{color:var(--cyn)}
+  </style>
+  <section class="join" id="join">
+    <h2>get the daily play-by-play</h2>
+    <p class="sub">the build log lands straight from the machine: what shipped, what broke, what it learned. double opt-in (you confirm once), one-click out, no spam.</p>
+    <form id="joinform" class="joinform" action="/api/subscribe" method="POST" onsubmit="joinSubmit(event)">
+      <input type="hidden" name="list" value="daily">
+      <input type="text" name="company_website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">
+      <input id="join-email" name="email" type="email" required placeholder="user@example.com" autocomplete="email" aria-label="your email address">
+      <button class="btn pri" type="submit">send me the log →</button>
+    </form>
+    <p id="join-msg" class="joinmsg" role="status" aria-live="polite"></p>
+    <p class="joinalt">want the deeper version? <a href="/playbook">grab the free field guide on building autonomous AI →</a></p>
+    <p class="joinalt">running a business yourself? <a href="https://www.hailports.com/ai-visibility/check">get a free AI scan of it →</a></p>
+  </section>
+
+  <section class="guides" id="guides">
+    <div class="gh">
+      <h2>field guides</h2>
+      <span class="gcount" id="gcount"></span>
+    </div>
+    <p class="sub">featured buyer-intent &amp; ops field guides from the full library. each one ships the signal and how to read it. <a href="/guides/">browse the full guide library →</a></p>
+    <input id="gsearch" type="search" placeholder="filter featured guides... e.g. cold email, dashboard, churn" autocomplete="off" aria-label="filter featured field guides">
+    <ul class="glist" id="glist">
+<!--GUIDE_LINKS-->
+    </ul>
+    <p class="sub gempty" id="gempty" role="status" hidden>no featured guides match that filter - <a href="/guides/">browse the full library →</a></p>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    # hailports &middot; build-in-public &middot; <b>hailports.com</b> &nbsp;|&nbsp; metrics are aggregate, anonymized &amp; auto-refreshing &middot; numbers rounded + ranged &middot; commits cloaked &middot; the operator stays anonymous — on purpose
+  </div>
+</footer>
+
+<script>
+(function(){
+  var ENDPOINT = "https://intake.hailports.com/live.json";
+  var dot=document.getElementById("livedot"), ltxt=document.getElementById("livetxt"),
+      upd=document.getElementById("updated"), mEl=document.getElementById("metrics"),
+      fEl=document.getElementById("feed");
+  var lastVals={};
+
+  function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+
+  function renderMetrics(arr){
+    if(!arr||!arr.length) return;
+    mEl.innerHTML = arr.map(function(t){
+      var changed = lastVals[t.label]!==undefined && lastVals[t.label]!==t.value;
+      lastVals[t.label]=t.value;
+      return '<div class="tile"><div class="v'+(changed?' flash':'')+'">'+esc(t.value)+
+        '</div><div class="l">'+esc(t.label)+'</div>'+
+        (t.sub?'<div class="s">'+esc(t.sub)+'</div>':'')+'</div>';
+    }).join("");
+  }
+
+  function renderFeed(c){
+    if(!c) return;
+    var feed=c.feed||[];
+    fEl.innerHTML = feed.slice(0,9).map(function(r){
+      return '<div class="row"><span class="h">'+esc(r.hash)+'</span>'+
+        '<span class="t">'+esc(r.type)+'</span>'+
+        '<span class="a">+'+esc(r.adds)+'</span><span class="d">-'+esc(r.dels)+'</span>'+
+        '<span class="f">('+esc(r.files)+'f)</span>'+
+        '<span class="ag">'+esc(r.age)+'</span></div>';
+    }).join("");
+    if(c.spark) document.getElementById("spark").textContent=c.spark;
+    if(c.total!=null) document.getElementById("ctotal").textContent=c.total;
+    if(c.week!=null) document.getElementById("cweek").textContent=c.week;
+    if(c.perday!=null) document.getElementById("cday").textContent=c.perday;
+  }
+
+  var lastOkAt=0, isLive=false, everFailed=false;
+  function fresh(){
+    if(!lastOkAt){ upd.textContent=everFailed?"cached":"syncing…"; return; }
+    var s=Math.floor((Date.now()-lastOkAt)/1000);
+    upd.textContent=(isLive?"updated ":"cached · ")+s+"s ago";
+  }
+  function ok(){ dot.classList.add("on"); ltxt.textContent="LIVE"; isLive=true; lastOkAt=Date.now(); }
+  function bad(){ dot.classList.remove("on"); ltxt.textContent="CACHED"; isLive=false; everFailed=true; }
+
+  function pull(){
+    fetch(ENDPOINT,{cache:"no-store"}).then(function(r){return r.json();}).then(function(d){
+      renderMetrics(d.metrics); renderFeed(d.commits); ok(); fresh();
+    }).catch(function(){ bad(); fresh(); });  // keep last metrics shown, just mark them cached
+  }
+  pull(); setInterval(pull, 12000); setInterval(fresh, 1000);
+
+  // guide filter
+  var search=document.getElementById("gsearch"), list=document.getElementById("glist"),
+      items=[].slice.call(list.querySelectorAll("li")), gc=document.getElementById("gcount"),
+      gempty=document.getElementById("gempty");
+  function tally(){ var n=items.filter(function(li){return li.style.display!=="none";}).length;
+    gc.textContent = n+" featured"; if(gempty) gempty.hidden = n>0; }
+  tally();
+  if(search) search.addEventListener("input",function(){
+    var q=search.value.toLowerCase().trim();
+    items.forEach(function(li){ li.style.display = (!q||li.textContent.toLowerCase().indexOf(q)>-1)?"":"none"; });
+    tally();
+  });
+})();
+
+// warm the YouTube connection on hover/focus intent so the live embed starts fast on tap
+// (DNS+TLS handshakes preflight before the click; zero cost for visitors who never engage the facade)
+var _streamWarmed = false;
+function warmStream(){
+  if(_streamWarmed) return; _streamWarmed = true;
+  ['https://www.youtube.com','https://s.ytimg.com','https://i.ytimg.com'].forEach(function(h){
+    var l = document.createElement('link'); l.rel = 'preconnect'; l.href = h; document.head.appendChild(l);
+  });
+}
+
+// click-to-load the live YouTube stream in place (facade -> real embed on intent)
+function loadStream(el){
+  var box = el.parentNode;
+  box.innerHTML = '<iframe src="https://www.youtube.com/embed/live_stream?channel=UC_NaJ6WEpYsNlq-CIGD8yAw&autoplay=1" '
+    + 'title="hailports — live autonomous build stream" '
+    + 'allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
+}
+
+// daily-log capture -> serverless backbone (isolated KV) w/ double opt-in ({email,list:"daily"})
+function joinSubmit(e){
+  e.preventDefault();
+  var em=document.getElementById("join-email").value.trim(),
+      msg=document.getElementById("join-msg");
+  if(!em){return;}
+  msg.textContent="sending…";
+  fetch("/api/subscribe",{method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({email:em,list:"daily"})})
+   .then(function(r){return r.json();})
+   .then(function(d){
+     msg.textContent=d&&d.ok?"check your inbox — confirm your email and the daily log starts landing (peek in spam just in case)."
+                            :"hmm, that didn't go through. mind trying again?";
+     if(d&&d.ok){document.getElementById("joinform").style.display="none";}
+   })
+   .catch(function(){ msg.textContent="network hiccup — try again in a sec."; });
+}
+</script>
+<!-- qualifier chat: a visitor chats here -> the owner gets pinged -> the reply relays back into
+     this same widget. Backend = https://intake.hailports.com/api/qchat (same-brand origin, CORS).
+     100% faceless: generic persona, no operator/PII. Override the base via window.__QCHAT_BASE. -->
+<script>window.__QCFG={name:"the team",brand:"hailports",greeting:"hey - a couple quick questions so we can point you the right way. what are you trying to get done?",base:"https://intake.hailports.com/api/qchat",accent:"#39d98a",btntext:"#04130c",bg:"#05080d",card:"#0a121b",text:"#e6f1ec",border:"#16202b",muted:"#8aa0b0"};</script>
+<script>(function(){
+var C=window.__QCFG||{},d=document;if(window.__qchat)return;window.__qchat=1;
+var BASE=(window.__QCHAT_BASE||C.base||"https://intake.hailports.com/api/qchat").replace(/\/+$/,"");
+var _qn=["S","am"].join("");
+function P(s){return (s==null?"":String(s)).replace(new RegExp("\\b"+_qn+"\\b","g"),C.name||"us");}
+var sid="",cursor=0,status="vetting",poll=null;
+function el(tag,css,txt){var e=d.createElement(tag);if(css)e.style.cssText=css;if(txt!=null)e.textContent=txt;return e;}
+var root=el("div","position:fixed;bottom:20px;right:20px;z-index:99999;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif");
+root.innerHTML='<div id="qc-p" role="dialog" aria-label="qualification chat" style="display:none;width:340px;height:480px;background:'+C.card+';border:1px solid '+C.border+';border-radius:16px;box-shadow:0 14px 50px rgba(0,0,0,.45);overflow:hidden;flex-direction:column">'+
+'<div style="background:'+C.accent+';color:'+C.btntext+';padding:14px 16px;font-weight:700;font-size:14px">'+(C.brand||"Chat")+'<div style="font-weight:400;font-size:11px;opacity:.85">source-safe chat &#183; without exposing operator details</div></div>'+
+'<div id="qc-m" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:'+C.bg+'"></div>'+
+'<div id="qc-c" style="display:flex;border-top:1px solid '+C.border+'">'+
+'<input id="qc-i" autocomplete="off" aria-label="type your message" placeholder="Type your answer..." style="flex:1;background:'+C.bg+';border:none;color:'+C.text+';padding:13px;font-size:13px;outline:none">'+
+'<input id="qc-hp" name="company_url" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;height:0;width:0">'+
+'<button id="qc-s" style="background:none;border:none;color:'+C.accent+';font-weight:700;padding:0 16px;cursor:pointer;font-size:13px">Send</button></div></div>'+
+'<button id="qc-b" aria-label="Open source-safe chat" title="Open source-safe chat" aria-controls="qc-p" aria-expanded="false" style="background:'+C.accent+';color:'+C.btntext+';border:none;border-radius:50%;width:58px;height:58px;font-size:26px;cursor:pointer;box-shadow:0 6px 22px rgba(0,0,0,.4);margin-left:auto;display:block">&#x1F4AC;</button>';
+d.body.appendChild(root);
+var panel=d.getElementById("qc-p"),msgs=d.getElementById("qc-m"),inp=d.getElementById("qc-i"),hp=d.getElementById("qc-hp"),btn=d.getElementById("qc-b"),snd=d.getElementById("qc-s"),bar=d.getElementById("qc-c"),opened=false;
+function mobileGate(){
+  var mobile=window.matchMedia&&window.matchMedia("(max-width:520px)").matches;
+  if(!mobile){root.style.display="block";return;}
+  root.style.display=(opened||window.scrollY>window.innerHeight*.68)?"block":"none";
+}
+mobileGate();
+window.addEventListener("scroll",mobileGate,{passive:true});
+window.addEventListener("resize",mobileGate,{passive:true});
+function bubble(t,me){var e=el("div","max-width:82%;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.45;"+(me?"align-self:flex-end;background:"+C.accent+";color:"+C.btntext:"align-self:flex-start;background:rgba(127,127,127,.16);color:"+C.text),P(t));msgs.appendChild(e);msgs.scrollTop=msgs.scrollHeight;return e;}
+function chips(choices){var wrap=el("div","display:flex;flex-wrap:wrap;gap:6px;align-self:flex-start");(choices||[]).forEach(function(ch){var b=el("button","background:transparent;border:1px solid "+C.accent+";color:"+C.accent+";border-radius:14px;padding:7px 12px;font-size:12px;cursor:pointer",ch.label);b.onclick=function(){wrap.remove();bubble(ch.label,true);step(ch.id);};wrap.appendChild(b);});msgs.appendChild(wrap);msgs.scrollTop=msgs.scrollHeight;}
+function setMode(ti){bar.style.display=ti?"flex":"none";if(ti)inp.focus();}
+function render(j){if(j.say)bubble(j.say,false);if(j.done||j.qualified||j.deflect){setMode(!!j.qualified);if(j.qualified){status="qualified";startPoll();}return;}if(j.retry){setMode(true);return;}if(j.kind==="choice"){setMode(false);if(j.prompt)bubble(j.prompt,false);chips(j.choices);}else if(j.prompt){bubble(j.prompt,false);setMode(true);}}
+function start(){fetch(BASE+"/start"+location.search,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"}).then(function(r){return r.json();}).then(function(j){if(!j||j.drop||!j.sid){bubble("Thanks for stopping by!",false);setMode(false);return;}sid=j.sid;try{localStorage.setItem("qc_sid",sid);}catch(e){}bubble(C.greeting||j.greeting,false);if(j.kind==="choice"){setMode(false);if(j.prompt)bubble(j.prompt,false);chips(j.choices);}else{if(j.prompt)bubble(j.prompt,false);setMode(true);}}).catch(function(){bubble("Connection hiccup - try again in a moment.",false);});}
+function step(value){if(!sid)return;fetch(BASE+"/step",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sid:sid,value:value,company_url:hp.value})}).then(function(r){return r.json();}).then(function(j){if(!j||!j.ok){if(j&&j.expired)bubble("Session reset - reopen to start again.",false);return;}if(j.live)return;render(j);}).catch(function(){bubble("Hmm, that didn't go through - try again.",false);});}
+function startPoll(){if(poll)return;poll=setInterval(function(){fetch(BASE+"/poll?sid="+encodeURIComponent(sid)+"&after="+cursor).then(function(r){return r.json();}).then(function(j){if(!j||!j.ok)return;(j.messages||[]).forEach(function(m){bubble(m.text,false);});if(j.cursor)cursor=j.cursor;if(j.status==="closed"){clearInterval(poll);poll=null;}}).catch(function(){});},3500);}
+function sendText(){var t=inp.value.trim();if(!t)return;bubble(t,true);inp.value="";step(t);}
+snd.onclick=sendText;inp.addEventListener("keydown",function(e){if(e.key==="Enter")sendText();});
+function reattach(prior){sid=prior;fetch(BASE+"/poll?sid="+encodeURIComponent(sid)+"&after=0").then(function(r){return r.json();}).then(function(j){if(!j||!j.ok||j.expired){try{localStorage.removeItem("qc_sid");}catch(e){}sid="";start();return;}status=j.status;if(status==="qualified"||status==="live"){bubble("Welcome back - "+(C.name||"we")+" caught up here. Anything to add?",false);(j.messages||[]).forEach(function(m){bubble(m.text,false);});if(j.cursor)cursor=j.cursor;setMode(true);startPoll();}else{try{localStorage.removeItem("qc_sid");}catch(e){}sid="";start();}}).catch(function(){try{localStorage.removeItem("qc_sid");}catch(e){}sid="";start();});}
+btn.onclick=function(){opened=!opened;panel.style.display=opened?"flex":"none";btn.setAttribute("aria-expanded",opened?"true":"false");mobileGate();if(opened&&!msgs.children.length){var prior=null;try{prior=localStorage.getItem("qc_sid");}catch(e){}if(prior)reattach(prior);else start();}};
+})();</script>
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('navlinks');
+  if(!t||!n) return;
+  function set(open){
+    n.classList.toggle('open', open);
+    t.setAttribute('aria-expanded', open?'true':'false');
+    t.setAttribute('aria-label', open?'close menu':'open menu');
+    t.textContent = open ? '✕' : '☰';
+  }
+  t.addEventListener('click', function(e){
+    e.stopPropagation();
+    var open = !n.classList.contains('open');
+    set(open);
+    if(open){ var f=n.querySelector('a'); if(f) f.focus(); }   // land keyboard focus in the revealed menu
+  });
+  n.addEventListener('click', function(e){ if(e.target.closest('a')) set(false); });
+  document.addEventListener('click', function(e){ if(n.classList.contains('open') && !e.target.closest('.nav-right')) set(false); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape' && n.classList.contains('open')){ set(false); t.focus(); } });
+})();
+</script>
+<script id="hp-beacon">(function(){try{var u="/api/hp/hit?p="+encodeURIComponent(location.pathname);if(navigator.sendBeacon){navigator.sendBeacon(u);}else{(new Image()).src=u+"&r="+Date.now();}}catch(e){}})();</script>
+</body>
+</html>

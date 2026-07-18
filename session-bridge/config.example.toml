@@ -1,0 +1,18 @@
+# session-bridge config -- copy to config.toml and edit.
+
+# The shared queue directory. Both sides (the agent that drops jobs and the
+# worker that stages them) must be able to see this path. It can be a synced
+# cloud folder, an NFS/SMB mount, a shared git working tree -- anything.
+queue = "~/bridge-queue"
+
+# How often the worker rescans the inbox, in seconds.
+poll_seconds = 20
+
+# Map each channel name to a connector command. The worker runs the command
+# and feeds it the job JSON on stdin; the command stages the draft in your
+# system and prints a JSON result on stdout. These are just commands, so a
+# channel can be anything you can script -- an email draft, a chat message, a
+# ticket, an SMS, a calendar hold.
+[connectors]
+email = "python3 ./examples/stage_email.py --drafts ~/bridge-drafts"
+chat  = "python3 ./examples/stage_chat.py  --drafts ~/bridge-drafts"

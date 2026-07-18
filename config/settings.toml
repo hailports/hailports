@@ -1,0 +1,49 @@
+[routing]
+default_model = "local:qwen2.5:7b"
+haiku_model = "openai/gpt-5.4-nano"
+sonnet_model = "openai/gpt-5.5"
+local_model = "qwen2.5:7b"
+opus_model = "openai/gpt-5.5-pro"
+max_tool_iterations = 25
+max_conversation_history = 20
+
+[frontends.telegram]
+
+[frontends.imessage]
+poll_interval_seconds = 3
+
+[frontends.webui]
+port = 8100
+host = "127.0.0.1"
+
+[system]
+timezone = "America/Chicago"
+
+[watchdog]
+check_interval = 30
+max_restart_attempts = 6
+backoff_schedule = [0, 5, 15, 60, 300, 900]
+
+# Tool registration is automatic — all available tools are loaded at startup.
+# Per-tool config below is for runtime behavior only, not enable/disable.
+
+[tools.outlook]
+
+[tools.monday]
+
+[tools.zoom]
+
+[tools.apple_mail]
+
+[tools.google_drive]
+
+[outputs]
+default_path = "~/Documents/Claude Outputs"
+
+[security_watcher]
+enabled_host_patterns = ["Macbook-Pro-CompanyA", "Macbook-Pro-CompanyA.local"]
+poll_interval_seconds = 30
+log_lookback_seconds = 60
+alert_cooldown_seconds = 600
+allowed_users = ["user"]
+self_device_names = ["Operator's iPhone"]

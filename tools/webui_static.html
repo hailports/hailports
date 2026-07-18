@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WorkOS Chat</title>
+<style>
+:root{--bg:#f5f5f7;--panel:#fff;--border:#e5e5ea;--text:#1d1d1f;--muted:#86868b;--accent:#007aff;--accent2:#34c759;--hover:#f2f2f7}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+.nav{display:flex;align-items:center;gap:14px;padding:10px 20px;background:rgba(255,255,255,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);flex-shrink:0}
+.nav .logo{font-size:16px;font-weight:700;color:var(--text);cursor:pointer}.nav .logo span{color:var(--accent)}
+.nav .spacer{flex:1}
+.nav a{color:var(--accent);text-decoration:none;font-size:13px;padding:5px 14px;border-radius:20px;background:rgba(0,122,255,.08);font-weight:500}
+.nav a.active{background:rgba(0,122,255,.15);font-weight:600}
+.app{display:flex;flex:1;min-height:0}
+.sidebar{width:260px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.sidebar-header h3{font-size:14px;font-weight:600}
+.sidebar-header button{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;font-weight:500}
+.thread-list{flex:1;overflow-y:auto}
+.thread-item{padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s;position:relative}
+.thread-item:hover{background:var(--hover)}
+.thread-item.active{background:rgba(0,122,255,.08);border-left:3px solid var(--accent)}
+.thread-item .t-title{font-size:13px;font-weight:500;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.thread-item .t-preview{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.thread-item .t-time{font-size:10px;color:var(--muted);float:right}
+.thread-item .t-pending{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.chat-area{flex:1;display:flex;flex-direction:column;min-width:0}
+.messages{flex:1;overflow-y:auto;padding:20px 24px}
+.msg{margin-bottom:16px;display:flex;gap:10px}
+.msg.user{justify-content:flex-end}
+.msg .bubble{max-width:75%;padding:12px 16px;border-radius:18px;font-size:14px;line-height:1.6;word-wrap:break-word}
+.msg.user .bubble{background:var(--accent);color:#fff;border-bottom-right-radius:6px}
+.msg.assistant .bubble{background:var(--panel);border:1px solid var(--border);color:var(--text);border-bottom-left-radius:6px}
+.msg.assistant .bubble h1,.msg.assistant .bubble h2,.msg.assistant .bubble h3{margin:12px 0 6px;line-height:1.3}
+.msg.assistant .bubble h1{font-size:18px}.msg.assistant .bubble h2{font-size:16px}.msg.assistant .bubble h3{font-size:14px}
+.msg.assistant .bubble p{margin:6px 0}
+.msg.assistant .bubble ul,.msg.assistant .bubble ol{margin:6px 0;padding-left:20px}
+.msg.assistant .bubble li{margin:2px 0}
+.msg.assistant .bubble code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;font-size:12px;font-family:'SF Mono',Menlo,monospace}
+.msg.assistant .bubble pre{background:#1d1d1f;color:#e0e0e0;padding:12px 14px;border-radius:10px;font-size:12px;overflow-x:auto;margin:8px 0;line-height:1.5;font-family:'SF Mono',Menlo,monospace}
+.msg.assistant .bubble pre code{background:none;padding:0;color:inherit}
+.msg.assistant .bubble blockquote{border-left:3px solid var(--border);padding-left:12px;color:var(--muted);margin:8px 0}
+.msg.assistant .bubble table{border-collapse:collapse;width:100%;margin:8px 0;font-size:12px}
+.msg.assistant .bubble th,.msg.assistant .bubble td{border:1px solid var(--border);padding:6px 10px;text-align:left}
+.msg.assistant .bubble th{background:var(--hover);font-weight:600}
+.msg.assistant .bubble hr{border:none;border-top:1px solid var(--border);margin:12px 0}
+.msg.assistant .bubble a{color:var(--accent)}
+.msg.assistant .bubble strong{font-weight:600}
+.msg.assistant .bubble em{font-style:italic}
+.artifact{margin:10px 0;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--panel)}
+.artifact-header{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:var(--hover);border-bottom:1px solid var(--border);font-size:12px;font-weight:500}
+.artifact-header .a-type{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+.artifact-header button{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-weight:500}
+.input-area{padding:12px 24px 16px;border-top:1px solid var(--border);background:var(--panel)}
+.input-meta{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.input-meta select{font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;background:var(--hover);color:var(--text);outline:none;cursor:pointer;font-weight:500}
+.input-meta .hint{font-size:10px;color:var(--muted)}
+.input-row{display:flex;gap:8px;align-items:flex-end}
+.input-row textarea{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:14px;font-size:14px;font-family:inherit;outline:none;resize:none;max-height:120px;min-height:42px;line-height:1.4;color:var(--text)}
+.input-row textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,122,255,.1)}
+.input-row .send-btn{padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s}
+.input-row .send-btn:hover{background:#0066dd}
+.upload-btn{background:none;border:1px solid var(--border);border-radius:10px;padding:8px 12px;cursor:pointer;font-size:16px;color:var(--muted);transition:all .15s}
+.upload-btn:hover{background:var(--hover);color:var(--accent)}
+.file-preview{display:flex;gap:8px;padding:6px 0;flex-wrap:wrap}
+.file-chip{display:flex;align-items:center;gap:4px;padding:4px 10px;background:var(--hover);border-radius:8px;font-size:11px}
+.file-chip button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px}
+.typing-dots{display:inline-flex;gap:4px;padding:4px 0}
+.typing-dots span{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:tdot 1.4s infinite}
+.typing-dots span:nth-child(2){animation-delay:.2s}
+.typing-dots span:nth-child(3){animation-delay:.4s}
+@keyframes tdot{0%,80%,100%{opacity:.3;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+@media(max-width:700px){
+  .sidebar{position:fixed;left:-280px;top:0;height:100vh;z-index:40;transition:left .3s;box-shadow:4px 0 20px rgba(0,0,0,.1)}
+  .sidebar.open{left:0}
+  .messages{padding:12px 14px}
+  .input-area{padding:8px 14px 12px}
+  .msg .bubble{max-width:88%}
+}
+</style>
+</head>
+<body>
+<div class="nav">
+  <div class="logo" onclick="document.getElementById('sidebar').classList.toggle('open')">Work<span>OS</span></div>
+  <div class="spacer"></div>
+  <a href="/">Dashboard</a>
+  <a href="/control">Control</a>
+  <a href="/chat" class="active">Chat</a>
+</div>
+<div class="app">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h3>Threads</h3>
+      <button onclick="newThread()">+ New</button>
+    </div>
+    <div class="thread-list" id="threadList"></div>
+  </div>
+  <div class="chat-area">
+    <div class="messages" id="messages"></div>
+    <div class="input-area">
+      <div class="file-preview" id="filePreview"></div>
+      <div class="input-meta">
+        <select id="modelSelect" onchange="updateModelHint()">
+          <option value="local">Local</option>
+          <option value="auto">Auto</option>
+          <option value="claude-sonnet">Sonnet</option>
+          <option value="claude-opus">Opus</option>
+          <option value="claude-haiku">Haiku</option>
+        </select>
+        <span class="hint" id="modelHint">Mistral only, no API fallback</span>
+      </div>
+      <div class="input-row">
+        <button class="upload-btn" onclick="document.getElementById('fileInput').click()" title="Upload file">&#x1F4CE;</button>
+        <input type="file" id="fileInput" style="display:none" accept="image/*,.pdf,.txt,.md,.html,.csv,.docx" onchange="handleFiles(this)" multiple>
+        <textarea id="chatInput" placeholder="Message..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}" oninput="this.style.height='42px';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
+        <button class="send-btn" onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+var API_KEY='changeme',currentThread='general',pendingFiles=[];
+var inflightRequests={};
+function E(id){return document.getElementById(id)}
+
+function updateModelHint(){
+  var hints={'auto':'local first, API fallback','claude-sonnet':'tools + balanced','claude-opus':'max quality + docs','claude-haiku':'fast + cheap','local':'Mistral only, no API fallback'};
+  E('modelHint').textContent=hints[E('modelSelect').value]||'';
+}
+
+function renderMarkdown(text){
+  if(!text)return'';
+  text=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  text=text.replace(/```(\w*)\n([\s\S]*?)```/g,function(m,lang,code){return '<pre><code>'+code.trim()+'</code></pre>';});
+  text=text.replace(/`([^`\n]+)`/g,'<code>$1</code>');
+  text=text.replace(/^### (.+)$/gm,'<h3>$1</h3>');
+  text=text.replace(/^## (.+)$/gm,'<h2>$1</h2>');
+  text=text.replace(/^# (.+)$/gm,'<h1>$1</h1>');
+  text=text.replace(/\*\*\*([^*]+)\*\*\*/g,'<strong><em>$1</em></strong>');
+  text=text.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  text=text.replace(/\*([^*]+)\*/g,'<em>$1</em>');
+  text=text.replace(/^---+$/gm,'<hr>');
+  text=text.replace(/^&gt; (.+)$/gm,'<blockquote>$1</blockquote>');
+  text=text.replace(/^(\|.+\|)\n(\|[-| :]+\|)\n((?:\|.+\|\n?)*)/gm,function(m,header,sep,body){
+    var ths=header.split('|').filter(Boolean).map(function(c){return'<th>'+c.trim()+'</th>'}).join('');
+    var rows=body.trim().split('\n').map(function(row){
+      var tds=row.split('|').filter(Boolean).map(function(c){return'<td>'+c.trim()+'</td>'}).join('');
+      return'<tr>'+tds+'</tr>';
+    }).join('');
+    return'<table><thead><tr>'+ths+'</tr></thead><tbody>'+rows+'</tbody></table>';
+  });
+  text=text.replace(/^[-*] (.+)$/gm,'<li>$1</li>');
+  text=text.replace(/((?:<li>.*<\/li>\n?)+)/g,'<ul>$1</ul>');
+  text=text.replace(/^\d+\. (.+)$/gm,'<li>$1</li>');
+  text=text.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank">$1</a>');
+  text=text.replace(/\n\n/g,'</p><p>');
+  text=text.replace(/\n/g,'<br>');
+  return text;
+}
+
+function renderArtifacts(text){
+  var docMatch=text.match(/Document saved to OneDrive: (.+?)(?:\n|$)/);
+  if(docMatch){
+    var filename=docMatch[1].trim();
+    var ext=filename.split('.').pop().toLowerCase();
+    var safeName=filename.replace(/'/g,"\\'");
+    var artHtml='<div class="artifact"><div class="artifact-header"><span>'+filename+'</span><span class="a-type">'+ext+'</span><div style="display:flex;gap:6px"><a href="/api/download/'+encodeURIComponent(filename)+'" download="'+filename+'" style="background:var(--accent2);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-weight:500;text-decoration:none">Download</a><button onclick="viewArtifact(\''+safeName+'\')">Preview</button></div></div></div>';
+    // Strip the saved/download/path lines from display
+    text=text.replace(/Document saved to OneDrive:.+?\n/g,'').replace(/Download link:.+?\n/g,'').replace(/Path: Claude Outputs\/.+?\n?/g,'');
+    return renderMarkdown(text)+artHtml;
+  }
+  return renderMarkdown(text);
+}
+
+async function viewArtifact(filename){
+  try{
+    var r=await(await fetch('/api/workos/execute',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tool_name:'read_output',tool_input:{filename:filename}})})).json();
+    if(r&&r.result){
+      var ext=filename.split('.').pop().toLowerCase();
+      var w=window.open('','_blank');
+      if(ext==='html'){
+        w.document.write(r.result);
+      } else {
+        w.document.write('<html><head><title>'+filename+'</title><style>body{font-family:-apple-system,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.7;color:#333}pre{background:#f5f5f7;padding:16px;border-radius:8px;overflow-x:auto}code{background:#f5f5f7;padding:2px 6px;border-radius:4px}h1,h2,h3{margin-top:24px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #e5e5ea;padding:8px 12px}th{background:#f5f5f7}</style></head><body>'+renderMarkdown(r.result)+'</body></html>');
+      }
+      w.document.close();
+    }
+  }catch(e){alert('Could not load: '+e.message)}
+}
+
+async function loadThreads(){
+  try{
+    var r=await(await fetch('/api/threads')).json();
+    var threads=r.threads||[];
+    E('threadList').innerHTML=threads.map(function(t){
+      var a=t.id===currentThread?' active':'';
+      var tm=t.last_message_at?new Date(t.last_message_at*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
+      var pending=inflightRequests[t.id]?'<span class="t-pending"></span>':'';
+      return '<div class="thread-item'+a+'" onclick="switchThread(\''+t.id+'\')">'+pending+'<span class="t-time">'+tm+'</span><div class="t-title">'+(t.title||'General').replace(/</g,'&lt;')+'</div><div class="t-preview">'+(t.last_preview||'').replace(/</g,'&lt;')+'</div></div>';
+    }).join('');
+  }catch(e){console.error(e)}
+}
+
+function switchThread(id){currentThread=id;loadThreads();loadMessages();E('sidebar').classList.remove('open');setTimeout(function(){E('chatInput').focus()},100)}
+
+async function newThread(){
+  var t=prompt('Thread name:');
+  if(!t)return;
+  var r=await(await fetch('/api/threads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:t})})).json();
+  if(r.thread)currentThread=r.thread.id;
+  loadThreads();loadMessages();
+}
+
+async function loadMessages(){
+  try{
+    var r=await(await fetch('/api/threads/'+currentThread+'/messages')).json();
+    var msgs=r.messages||[];
+    var el=E('messages');
+    if(!msgs.length){
+      el.innerHTML='<div style="text-align:center;color:var(--muted);padding:60px 20px;font-size:15px">Start a conversation<br><span style="font-size:12px;margin-top:8px;display:block">Upload files, ask questions, generate documents</span></div>';
+      if(inflightRequests[currentThread])el.innerHTML+='<div class="msg assistant" id="pending"><div class="bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div></div>';
+      return;
+    }
+    el.innerHTML=msgs.map(function(m){
+      var cls=m.role==='user'?'user':'assistant';
+      var text='';
+      if(typeof m.content==='string')text=m.content;
+      else if(Array.isArray(m.content))m.content.forEach(function(b){if(b.type==='text')text+=b.text});
+      var content=cls==='user'?text.replace(/</g,'&lt;').replace(/\n/g,'<br>'):renderArtifacts(text);
+      var files=(m.file_refs&&m.file_refs.length)?'<div style="font-size:11px;color:var(--muted);margin-top:6px">'+m.file_refs.length+' file(s) attached</div>':'';
+      return '<div class="msg '+cls+'"><div class="bubble">'+content+files+'</div></div>';
+    }).join('');
+    if(inflightRequests[currentThread])el.innerHTML+='<div class="msg assistant" id="pending"><div class="bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div></div>';
+    el.scrollTop=el.scrollHeight;
+  }catch(e){console.error(e)}
+}
+
+async function sendMessage(){
+  var inp=E('chatInput');
+  var text=inp.value.trim();
+  if(!text&&!pendingFiles.length)return;
+  var threadId=currentThread;
+  var el=E('messages');
+  el.innerHTML+='<div class="msg user"><div class="bubble">'+text.replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</div></div>';
+  el.innerHTML+='<div class="msg assistant" id="pending"><div class="bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div></div>';
+  el.scrollTop=el.scrollHeight;
+  inp.value='';inp.style.height='42px';
+
+  var fileIds=[];
+  for(var i=0;i<pendingFiles.length;i++){
+    var fd=new FormData();fd.append('file',pendingFiles[i]);
+    try{var ur=await(await fetch('/v1/upload',{method:'POST',body:fd})).json();if(ur.file_id)fileIds.push(ur.file_id)}catch(e){}
+  }
+  pendingFiles=[];E('filePreview').innerHTML='';
+
+  inflightRequests[threadId]=true;
+  loadThreads();
+
+  var model=E('modelSelect').value;
+  var body={model:model,messages:[{role:'user',content:text}],thread_id:threadId};
+  if(fileIds.length)body.file_ids=fileIds;
+
+  try{
+    var r=await fetch('/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+API_KEY+':Operator'},
+      body:JSON.stringify(body)
+    });
+    var data=await r.json();
+    var reply=(data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content)||'No response';
+    delete inflightRequests[threadId];
+    if(currentThread===threadId){
+      var pending=E('pending');
+      if(pending){pending.querySelector('.bubble').innerHTML=renderArtifacts(reply);pending.id=''}
+      el.scrollTop=el.scrollHeight;
+    }
+    loadThreads();
+  }catch(e){
+    delete inflightRequests[threadId];
+    if(currentThread===threadId){
+      var pending=E('pending');
+      if(pending){pending.querySelector('.bubble').innerHTML='<span style="color:#ff3b30">Error: '+e.message+'</span>';pending.id=''}
+    }
+    loadThreads();
+  }
+}
+
+function handleFiles(inp){pendingFiles=pendingFiles.concat(Array.from(inp.files));inp.value='';renderFiles()}
+function renderFiles(){E('filePreview').innerHTML=pendingFiles.map(function(f,i){return '<div class="file-chip">'+f.name+'<button onclick="pendingFiles.splice('+i+',1);renderFiles()">x</button></div>'}).join('')}
+
+loadThreads();loadMessages();updateModelHint();
+setTimeout(function(){E('chatInput').focus()},200);
+setInterval(function(){if(Object.keys(inflightRequests).length>0){loadThreads()}},3000);
+</script>
+</body>
+</html>

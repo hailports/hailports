@@ -1,0 +1,561 @@
+"""Entry point for the Wells agentic coding harness.
+
+Usage:
+    coding-harness "<your development goal>"        # run the harness
+    coding-harness --workspace /path "fix the bug"  # run against another project
+    coding-harness config                           # interactive settings menu
+    coding-harness info                             # show effective config
+    coding-harness --plan "<goal>"                  # plan mode (no edits)
+    coding-harness --version                        # show version
+    coding-harness "<goal>" MAX_ITERATIONS=5        # inline setting overrides
+"""
+
+from __future__ import annotations
+
+import os
+import sys
+import time as _time
+from datetime import datetime
+from pathlib import Path
+
+from coding_harness import __version__, config, settings
+
+
+def _print_section(title: str, body: str) -> None:
+    line = "=" * 70
+    print(f"\n{line}\n{title}\n{line}\n{body or '(empty)'}")
+
+
+def _print_final_summary(state: dict) -> None:
+    complete = state.get("review_complete", False)
+    iterations = state.get("iteration", 0)
+    max_iter = state.get("max_iterations", config.MAX_ITERATIONS)
+    status = "COMPLETE" if complete else f"INCOMPLETE (stopped after {iterations}/{max_iter} iterations)"
+
+    bar = "=" * 70
+    print(f"\n{bar}")
+    print(f"  {status}")
+    print(bar)
+
+    # Git result (set by finisher node)
+    git = state.get("git_summary", "")
+    if git:
+        print(f"\n  Changes: {git}")
+
+    # What the coder actually did — first 800 chars is usually enough
+    impl = (state.get("implementation_steps") or "").strip()
+    if impl:
+        preview = impl[:800] + (" …(truncated)" if len(impl) > 800 else "")
+        print(f"\n  What was done:\n{_indent(preview, 4)}")
+
+    # Reviewer feedback — only meaningful lines, capped at 15
+    review = (state.get("review_result") or "").strip()
+    if review:
+        lines = [ln for ln in review.splitlines() if ln.strip()]
+        shown = "\n".join(lines[:15])
+        if len(lines) > 15:
+            shown += f"\n  … ({len(lines) - 15} more lines)"
+        print(f"\n  Reviewer notes:\n{_indent(shown, 4)}")
+
+    print(bar)
+
+
+def _indent(text: str, spaces: int) -> str:
+    pad = " " * spaces
+    return "\n".join(pad + ln for ln in text.splitlines())
+
+
+def _print_info() -> None:
+    """Print the effective configuration (resolved profiles + run knobs)."""
+    from coding_harness import providers
+
+    bar = "=" * 64
+    print(f"\n{bar}\n Wells harness — effective configuration\n{bar}")
+    print(f"  Active profile : {config.ACTIVE_PROFILE}")
+    try:
+        prof = providers.load_profile(config.ACTIVE_PROFILE)
+        print(f"  Model          : {prof.label() if prof else '(not configured)'}")
+        if prof:
+            print(f"  Provider kind  : {prof.kind}")
+            print(f"  Base URL       : {prof.base_url or '(provider default)'}")
+            print(f"  API key set    : {bool(prof.api_key)}")
+    except Exception as e:
+        print(f"  Model          : (error resolving: {e})")
+
+    cheap = config.cheap_profile_name()
+    if cheap != config.ACTIVE_PROFILE:
+        cprof = providers.load_profile(cheap)
+        print(f"  Cheap profile  : {cheap} -> {cprof.label() if cprof else '?'}")
+
+    print(f"\n  Available profiles : {config.MODEL_PROFILES}")
+    print(f"  Workspace root     : {config.WORKSPACE_ROOT}")
+    print(f"  Safety policy      : {config.HARNESS_SAFETY}")
+    print(f"  Plan mode          : {'on' if config.PLAN_MODE else 'off'}")
+    print(f"  Max iterations     : {config.MAX_ITERATIONS}")
+    print(f"  Max tool steps     : {config.MAX_TOOL_STEPS}")
+    print(
+        f"  Token budget/call  : {config.BUDGET.max_input_tokens} "
+        f"(reserved out {config.BUDGET.reserved_output_tokens})"
+    )
+    print(
+        f"  Summarize on loop  : {'on' if config.SUMMARIZE_ON_LOOP else 'off'} "
+        f"(threshold {config.SUMMARIZE_THRESHOLD})"
+    )
+    # Show the active principles source so users know which AGENT.md is in effect.
+    try:
+        from coding_harness import principles
+        print(f"  Principles         : {principles.source_label(config.WORKSPACE_ROOT)}")
+    except Exception:
+        pass
+    print(bar)
+
+
+def _run_goal(goal: str, *, resume_context: str | None = None) -> None:
+    """Build and invoke the harness graph for ``goal``."""
+    from coding_harness.graph import build_graph
+    from coding_harness.sessions import new_session_id, save_session, session_from_final_state
+    from coding_harness.tokens import LEDGER
+
+    if not _ensure_model_configured():
+        sys.exit(1)
+
+    LEDGER.reset()
+    session_id = new_session_id()
+    t0 = _time.time()
+
+    print(f"Model: {config.model_name_for_task('coding')}")
+    print(f"Workspace: {config.WORKSPACE_ROOT}  (safety: {config.HARNESS_SAFETY})")
+    if config.PLAN_MODE:
+        print("Plan mode: ON (coder will plan edits without applying them)")
+    print(f"Max coder<->reviewer iterations: {config.MAX_ITERATIONS}")
+    print(f"Goal: {goal}")
+    if resume_context:
+        print("[Continuing from previous session — context injected]")
+    print("-" * 70)
+
+    app = build_graph()
+    effective_goal = f"{resume_context}\n\nCONTINUED GOAL:\n{goal}" if resume_context else goal
+    initial_state = {
+        "goal": effective_goal,
+        "iteration": 0,
+        "max_iterations": config.MAX_ITERATIONS,
+        "workspace_root": config.WORKSPACE_ROOT,
+        "safety": config.HARNESS_SAFETY,
+        "plan_mode": config.PLAN_MODE,
+        "messages": [],
+    }
+
+    final_state = app.invoke(initial_state)
+    duration = int(_time.time() - t0)
+    _print_final_summary(final_state)
+
+    # Token report: one-line summary; full table only when WELLS_TOKEN_REPORT=1.
+    t = LEDGER.totals()
+    total = t["input"] + t["output"]
+    print(
+        f"\n[tokens] {total:,} total "
+        f"({t['input']:,} in / {t['output']:,} out) across {t['calls']} calls"
+        + (f", {t['cache_read']:,} cache hits" if t["cache_read"] else "")
+        + (" — set WELLS_TOKEN_REPORT=1 for full breakdown" if total > 50_000 else "")
+    )
+    if os.environ.get("WELLS_TOKEN_REPORT") == "1":
+        print("\n" + LEDGER.format_report())
+
+    # Persist session for later resume/history.
+    try:
+        data = session_from_final_state(
+            session_id, goal, final_state,
+            workspace=config.WORKSPACE_ROOT,
+            tokens_in=t["input"],
+            tokens_out=t["output"],
+            duration_seconds=duration,
+            resumed_from=resume_context[:80] if resume_context else None,
+        )
+        save_session(session_id, data)
+        print(f"[session: {session_id}]")
+    except Exception as e:
+        print(f"[session save failed: {e}]")
+
+
+def _ensure_model_configured() -> bool:
+    """Check the active profile resolves + the provider package is installed."""
+    from coding_harness import providers
+
+    try:
+        prof = providers.load_profile(config.ACTIVE_PROFILE)
+    except Exception:
+        prof = None
+    if prof is None or not prof.model:
+        print(
+            f"ERROR: active profile {config.ACTIVE_PROFILE!r} has no model configured."
+        )
+        print(
+            "Run `coding-harness config` to set it up, or set "
+            f"MODEL_{config.ACTIVE_PROFILE}=<model> in your environment."
+        )
+        return False
+    try:
+        providers.get_chat_model(config.ACTIVE_PROFILE)
+        return True
+    except RuntimeError as e:
+        print(f"ERROR: {e}")
+        return False
+
+
+def _reload_module_config() -> None:
+    """Re-import config values that may have changed via the menu/overrides.
+
+    Several modules captured values at import time; after the menu mutates the
+    environment we refresh the ones that matter for a run.
+    """
+    import importlib
+
+    importlib.reload(config)
+
+
+def _run_index_cmd(args: list[str]) -> None:
+    """Handle `wells index` subcommand (build/update/status/clear)."""
+    from coding_harness import index_tools
+    from coding_harness.tools import ToolContext
+
+    if not index_tools.INDEXER_AVAILABLE:
+        print("ERROR: Index engine not available. Install: pip install wells-index")
+        sys.exit(1)
+
+    ctx = ToolContext(workspace=config.WORKSPACE_ROOT)
+
+    if not args or args[0] in ("build", "update", ""):
+        # Build/update the index
+        print(f"Indexing {config.WORKSPACE_ROOT}...")
+        result = index_tools.index_workspace(ctx)
+        if result.ok:
+            print(result.output)
+        else:
+            print(f"ERROR: {result.error or result.output}")
+            sys.exit(1)
+    elif args[0] == "--status":
+        # Show index statistics
+        print("Repository index statistics:")
+        result = index_tools.list_symbols(ctx, "")
+        if result.ok:
+            print(result.output)
+        else:
+            print(f"ERROR: {result.error or result.output}")
+            sys.exit(1)
+    elif args[0] == "--clear":
+        # Clear the index
+        print(f"Clearing index at {config.WORKSPACE_ROOT}...")
+        try:
+            from wells_index import IndexEngine
+            engine = IndexEngine(config.WORKSPACE_ROOT)
+            engine.clear()
+            print("Index cleared.")
+        except Exception as e:
+            print(f"ERROR: Could not clear index: {e}")
+            sys.exit(1)
+    else:
+        print(f"ERROR: Unknown index subcommand: {args[0]}")
+        print("Usage: wells index [--status|--clear]")
+        sys.exit(2)
+
+
+def _run_sessions_cmd(args: list[str]) -> None:
+    """Handle `wells sessions [list|delete|clear] [--all]` subcommand."""
+    from coding_harness.sessions import (
+        clear_sessions, delete_session, format_age, list_sessions,
+    )
+
+    all_ws = "--all" in args
+    sub_args = [a for a in args if a != "--all"]
+    subcmd = sub_args[0] if sub_args else "list"
+    workspace = None if all_ws else config.WORKSPACE_ROOT
+
+    if subcmd in ("list", ""):
+        sessions = list_sessions(workspace=workspace, limit=50)
+        if not sessions:
+            ws_note = "any workspace" if all_ws else f"workspace: {workspace}"
+            print(f"No sessions found ({ws_note}).")
+            return
+        print(f"\n{'SESSION ID':<26}  {'AGE':<10}  {'STATUS':<12}  {'TOKENS':>8}   GOAL")
+        print("-" * 92)
+        for s in sessions:
+            age = format_age(s.get("created_at", ""))
+            status = s.get("status", "?")
+            tok = (s.get("tokens_in") or 0) + (s.get("tokens_out") or 0)
+            tok_s = f"{tok:,}" if tok else "?"
+            goal = (s.get("goal") or "")[:48]
+            print(f"{s['id']:<26}  {age:<10}  {status:<12}  {tok_s:>8}   {goal}")
+        scope = "all workspaces" if all_ws else "this workspace"
+        print(f"\n{len(sessions)} session(s) — {scope}. "
+              f"Add --all to see every workspace.\n")
+
+    elif subcmd == "delete":
+        if len(sub_args) < 2:
+            print("ERROR: sessions delete requires a SESSION_ID")
+            print("Usage: wells sessions delete SESSION_ID")
+            sys.exit(2)
+        if delete_session(sub_args[1]):
+            print(f"Deleted: {sub_args[1]}")
+        else:
+            print(f"Not found: {sub_args[1]}")
+            sys.exit(1)
+
+    elif subcmd == "clear":
+        ws_note = "ALL workspaces" if all_ws else f"workspace: {workspace}"
+        try:
+            confirm = input(f"Delete all sessions for {ws_note}? [y/N] ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            return
+        if confirm in ("y", "yes"):
+            n = clear_sessions(workspace=workspace)
+            print(f"Deleted {n} session(s).")
+        else:
+            print("Cancelled.")
+
+    else:
+        print(f"ERROR: Unknown sessions subcommand: {subcmd!r}")
+        print("Usage: wells sessions [list|delete SESSION_ID|clear] [--all]")
+        sys.exit(2)
+
+
+def _handle_resume_flag(flag_value: str, goal_args: list[str]) -> tuple[str, str | None]:
+    """Resolve -r/--resume into (goal, resume_context).
+
+    ``flag_value`` is either "" (interactive picker) or a specific session ID.
+    ``goal_args`` are the remaining CLI goal words.
+    Returns (goal_to_run, resume_context_or_None).
+    """
+    from coding_harness.sessions import (
+        build_resume_context, format_age, is_session_id,
+        list_sessions, load_session,
+    )
+
+    if flag_value and is_session_id(flag_value):
+        session = load_session(flag_value)
+        if not session:
+            print(f"ERROR: Session not found: {flag_value}")
+            sys.exit(2)
+    else:
+        # Interactive picker
+        sessions = list_sessions(limit=10)
+        if not sessions:
+            print("No previous sessions found — starting fresh.")
+            return " ".join(goal_args), None
+
+        print("\nRecent sessions:")
+        for i, s in enumerate(sessions, 1):
+            age = format_age(s.get("created_at", ""))
+            status_sym = "✓" if s.get("status") == "COMPLETE" else "~"
+            goal_prev = (s.get("goal") or "")[:58]
+            tok = (s.get("tokens_in") or 0) + (s.get("tokens_out") or 0)
+            tok_s = f"{tok // 1000}K" if tok >= 1000 else str(tok)
+            print(f"  {i}. [{age}] {status_sym} {goal_prev!r}  [{tok_s} tok]")
+            print(f"     {s['id']}")
+        print()
+        try:
+            choice = input("Select [1-N] or Enter to start fresh: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return " ".join(goal_args), None
+
+        if not choice:
+            return " ".join(goal_args), None
+
+        try:
+            session = sessions[int(choice) - 1]
+        except (ValueError, IndexError):
+            print(f"Invalid selection: {choice!r} — starting fresh.")
+            return " ".join(goal_args), None
+
+    # Show what we're resuming
+    print(f"\nResuming: {session['id']}")
+    print(f"Previous goal: {session.get('goal', '')}")
+    print(f"Status: {session.get('status', '?')}")
+    if session.get("git_summary"):
+        print(f"Changes: {session['git_summary']}")
+    print()
+
+    # Goal is whatever the user passed on the command line.
+    # Do NOT fall back to the session's previous goal — the caller uses an
+    # empty goal to decide whether to launch the TUI or run a one-shot task.
+    # The resume context already contains the previous goal as readable text.
+    goal = " ".join(goal_args).strip()
+    return goal, build_resume_context(session)
+
+
+def _print_usage() -> None:
+    print(__doc__)
+    print(
+        "\nFlags:\n"
+        "  -w, --workspace PATH   operate on PATH instead of the current dir\n"
+        "  -s, --safety MODE      auto | approve | dryrun\n"
+        "  -r, --resume [SID]     resume a previous session (interactive or by ID)\n"
+        "      --plan             plan mode (describe edits, don't apply)\n"
+        "      --version          show version and exit\n"
+        "  -h, --help             show this help\n"
+        "\nSubcommands:\n"
+        "  sessions               list session history\n"
+        "  sessions delete SID    delete one session\n"
+        "  sessions clear         delete all sessions for current workspace\n"
+        "  sessions --all         operate across all workspaces\n"
+    )
+
+
+def main() -> None:
+    # Set uv link mode to avoid hardlink warning
+    os.environ["UV_LINK_MODE"] = "copy"
+
+    # Auto-setup on first run (build indexer, prompt for workspace, index)
+    # This runs silently in background on first use
+    try:
+        from coding_harness import setup
+        setup.first_run_setup()
+    except Exception:
+        # Setup failures are non-fatal; system works without indexer (falls back to grep)
+        pass
+
+    argv = list(sys.argv[1:])
+
+    # --version short-circuits everything.
+    if "--version" in argv or "-V" in argv:
+        print(f"wells {__version__}")
+        return
+
+    # ---- Pass 1: strip global flags (--workspace, --safety, --plan, --resume) ----
+    workspace_override: str | None = None
+    safety_override: str | None = None
+    plan_flag = False
+    resume_flag: str | None = None  # None = no resume; "" = interactive; "ID" = specific
+    remaining: list[str] = []
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a in ("-w", "--workspace"):
+            i += 1
+            if i < len(argv):
+                workspace_override = argv[i]
+            else:
+                print("ERROR: --workspace requires a PATH argument")
+                sys.exit(2)
+        elif a.startswith("--workspace="):
+            workspace_override = a.split("=", 1)[1]
+        elif a in ("-s", "--safety"):
+            i += 1
+            if i < len(argv):
+                safety_override = argv[i]
+            else:
+                print("ERROR: --safety requires a MODE argument")
+                sys.exit(2)
+        elif a.startswith("--safety="):
+            safety_override = a.split("=", 1)[1]
+        elif a == "--plan":
+            plan_flag = True
+        elif a in ("-r", "--resume"):
+            from coding_harness.sessions import is_session_id
+            # Peek ahead: if next arg is a session ID, consume it
+            if i + 1 < len(argv) and is_session_id(argv[i + 1]):
+                i += 1
+                resume_flag = argv[i]
+            else:
+                resume_flag = ""  # interactive picker
+        else:
+            remaining.append(a)
+        i += 1
+
+    # ---- Apply workspace/safety/plan overrides to the environment ----
+    # We do NOT os.chdir() — that would break `uv run`'s project detection.
+    # The harness passes workspace_root into the graph state, and the tool layer
+    # uses it as the cwd for every subprocess it spawns.
+    if workspace_override:
+        ws = str(Path(workspace_override).resolve())
+        if not Path(ws).is_dir():
+            print(f"ERROR: workspace path does not exist or is not a directory: {ws}")
+            sys.exit(2)
+        os.environ["WORKSPACE_ROOT"] = ws
+    if safety_override:
+        os.environ["HARNESS_SAFETY"] = safety_override
+    if plan_flag:
+        os.environ["PLAN_MODE"] = "1"
+    if workspace_override or safety_override or plan_flag:
+        _reload_module_config()
+
+    # ---- Pass 2: subcommand detection on what's left ----
+    if remaining and remaining[0] in ("-h", "--help", "help"):
+        _print_usage()
+        return
+    if remaining and remaining[0] == "config":
+        settings.interactive_menu(Path(".env"))
+        return
+    if remaining and remaining[0] == "info":
+        # Apply any inline KEY=VALUE overrides first, then show.
+        settings.parse_argv_settings(remaining[1:])
+        _reload_module_config()
+        _print_info()
+        return
+    if remaining and remaining[0] == "principles":
+        # Show which AGENT.md principles are active (and where they come from).
+        from coding_harness import principles
+        ws = config.WORKSPACE_ROOT
+        print(f"\nPrinciples source: {principles.source_label(ws)}")
+        print("-" * 60)
+        print(principles.principles_text(ws))
+        return
+    if remaining and remaining[0] == "index":
+        _run_index_cmd(remaining[1:])
+        return
+    if remaining and remaining[0] == "sessions":
+        _run_sessions_cmd(remaining[1:])
+        return
+
+    # ---- Pass 3: a goal run — separate goal args from KEY=VALUE overrides ----
+    overrides = [a for a in remaining if _looks_like_override(a)]
+    goal_args = [a for a in remaining if not _looks_like_override(a)]
+
+    if overrides:
+        settings.parse_argv_settings(overrides)
+        _reload_module_config()
+
+    if not goal_args and resume_flag is None:
+        # No goal and no resume flag — launch the interactive REPL.
+        # Start the file-system watcher before entering the TUI so the index
+        # stays live while the dev works (changes indexed within ~1.5s).
+        if config.INDEX_AUTO_UPDATE:
+            try:
+                from coding_harness import index_watcher, index_tools
+                ws = config.WORKSPACE_ROOT
+                started = index_watcher.start(ws)
+                if started:
+                    # Build index on first launch if missing; watcher handles
+                    # all subsequent updates automatically.
+                    index_tools.ensure_index(ws, auto_build=True)
+            except Exception:
+                pass  # watcher is optional — Wells works without it
+        from coding_harness.cli import run_repl
+        run_repl()
+        return
+
+    if resume_flag is not None:
+        goal, resume_ctx = _handle_resume_flag(resume_flag, goal_args)
+        if goal:
+            # User supplied a new goal on the CLI: run it once with context.
+            _run_goal(goal, resume_context=resume_ctx)
+        else:
+            # No new goal: enter the TUI with the session context preloaded.
+            from coding_harness.cli import run_repl
+            run_repl(resume_context=resume_ctx)
+        return
+
+    goal = " ".join(goal_args).strip()
+    _run_goal(goal)
+
+
+def _looks_like_override(arg: str) -> bool:
+    """True if ``arg`` looks like ``KEY=VALUE`` (a settings override, not a goal)."""
+    if "=" not in arg:
+        return False
+    key = arg.split("=", 1)[0]
+    return key.isidentifier() or key.replace("_", "").isalnum()
+
+
+if __name__ == "__main__":
+    main()

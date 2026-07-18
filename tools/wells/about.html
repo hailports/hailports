@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How the Wells Coding Harness Works</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --panel2: #1c2128; --border: #30363d;
+    --text: #c9d1d9; --muted: #8b949e; --accent: #58a6ff; --green: #3fb950;
+    --orange: #d29922; --red: #f85149; --purple: #bc8cff; --teal: #39d0d8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6; padding: 0;
+  }
+  .hero {
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #1a2233 100%);
+    border-bottom: 1px solid var(--border); padding: 60px 40px; text-align: center;
+  }
+  .hero h1 {
+    font-size: 2.6em; background: linear-gradient(90deg, var(--accent), var(--purple));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; margin-bottom: 12px;
+  }
+  .hero p { color: var(--muted); font-size: 1.15em; max-width: 720px; margin: 0 auto; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+  section { margin-bottom: 56px; }
+  h2 {
+    font-size: 1.7em; color: var(--text); margin-bottom: 16px;
+    padding-bottom: 8px; border-bottom: 2px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  h2 .num {
+    background: var(--accent); color: var(--bg); width: 34px; height: 34px;
+    border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+    font-size: 0.65em; font-weight: 700;
+  }
+  p { margin-bottom: 14px; color: var(--text); }
+  .lead { font-size: 1.1em; color: var(--muted); }
+
+  /* Flow diagram */
+  .flow-wrap { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 36px 20px; overflow-x: auto; }
+  .flow { display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: nowrap; min-width: 760px; }
+  .node {
+    background: var(--panel2); border: 2px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; min-width: 110px; text-align: center; position: relative;
+    transition: transform .2s;
+  }
+  .node:hover { transform: translateY(-3px); }
+  .node .icon { font-size: 1.6em; display: block; margin-bottom: 4px; }
+  .node .name { font-weight: 700; font-size: 0.92em; }
+  .node .desc { font-size: 0.72em; color: var(--muted); margin-top: 3px; }
+  .node.start { border-color: var(--green); background: rgba(63,185,80,.08); }
+  .node.plan { border-color: var(--accent); }
+  .node.code { border-color: var(--orange); background: rgba(210,153,34,.06); }
+  .node.review { border-color: var(--purple); }
+  .node.end { border-color: var(--red); background: rgba(248,81,73,.06); }
+  .arrow { color: var(--muted); font-size: 1.5em; padding: 0 4px; flex-shrink: 0; }
+  .loop-label {
+    display: block; text-align: center; color: var(--orange); font-size: 0.8em;
+    margin-top: 14px; font-style: italic;
+  }
+
+  /* Layer stack */
+  .layers { display: flex; flex-direction: column; gap: 10px; }
+  .layer {
+    display: grid; grid-template-columns: 60px 1fr; gap: 18px; align-items: center;
+    background: var(--panel); border: 1px solid var(--border); border-left: 4px solid var(--accent);
+    border-radius: 8px; padding: 16px 20px; transition: border-left-color .2s;
+  }
+  .layer:hover { border-left-color: var(--purple); }
+  .layer .tag {
+    background: var(--panel2); border: 1px solid var(--border); color: var(--accent);
+    border-radius: 6px; padding: 8px 6px; text-align: center; font-weight: 700; font-size: 0.85em;
+  }
+  .layer h3 { font-size: 1.05em; margin-bottom: 4px; }
+  .layer p { font-size: 0.9em; color: var(--muted); margin: 0; }
+  .layer .files { font-family: 'SF Mono',Consolas,monospace; font-size: 0.78em; color: var(--teal); margin-top: 4px; }
+
+  /* Grid cards */
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px;
+    transition: transform .2s, border-color .2s;
+  }
+  .card:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .card h3 { color: var(--accent); font-size: 1em; margin-bottom: 8px; }
+  .card p { font-size: 0.88em; color: var(--muted); margin: 0; }
+  .card .pill {
+    display: inline-block; background: rgba(88,166,255,.12); color: var(--accent);
+    border-radius: 12px; padding: 2px 10px; font-size: 0.75em; margin-top: 8px;
+  }
+
+  /* Tool badges */
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .badge {
+    background: var(--panel2); border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 12px; font-family: 'SF Mono',Consolas,monospace; font-size: 0.82em; color: var(--teal);
+  }
+  .badge.ro { color: var(--green); border-color: rgba(63,185,80,.3); }
+  .badge.mut { color: var(--orange); border-color: rgba(210,153,34,.3); }
+
+  /* Safety table */
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  th { color: var(--accent); font-size: 0.85em; text-transform: uppercase; letter-spacing: .5px; }
+  td code { background: var(--panel2); padding: 2px 8px; border-radius: 4px; color: var(--purple); font-family: monospace; }
+  tr:hover { background: var(--panel); }
+
+  /* Provider chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .chip {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 20px;
+    padding: 8px 16px; display: flex; align-items: center; gap: 8px; font-size: 0.9em;
+  }
+  .chip .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.green { background: var(--green); } .dot.blue { background: var(--accent); }
+  .dot.purple { background: var(--purple); } .dot.orange { background: var(--orange); }
+
+  /* Token viz */
+  .token-bar { display: flex; height: 32px; border-radius: 8px; overflow: hidden; margin: 16px 0; border: 1px solid var(--border); }
+  .token-bar div { display: flex; align-items: center; justify-content: center; font-size: 0.75em; font-weight: 600; color: var(--bg); }
+
+  code.inline { background: var(--panel2); padding: 2px 7px; border-radius: 4px; color: var(--teal); font-family: monospace; font-size: 0.9em; }
+  .note {
+    background: rgba(88,166,255,.06); border: 1px solid rgba(88,166,255,.3); border-radius: 8px;
+    padding: 14px 18px; margin: 16px 0; font-size: 0.92em;
+  }
+  footer { text-align: center; padding: 30px; color: var(--muted); border-top: 1px solid var(--border); font-size: 0.85em; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Wells Coding Harness</h1>
+  <p>A local, model-agnostic agentic coding harness. Give it a development goal and a crew of AI agents actually reads files, makes edits, runs tests, and ships a PR &mdash; Claude-Code style, driven by any model you choose.</p>
+</div>
+
+<div class="container">
+
+  <!-- 0. WHAT'S NEW -->
+  <section>
+    <h2><span class="num">★</span>Current Capabilities (July 2026)</h2>
+    <p class="lead">Beyond the core loop described below, Wells now ships:</p>
+    <ul style="color: var(--text); margin: 0 0 14px 22px; line-height: 1.9;">
+      <li><strong>Full-screen TUI</strong> — multi-line prompt with persistent history, live status bar (tokens + dollar cost + agent activity), Escape-to-cancel, streamed answers, modal <code>/config</code> settings and <code>/mcp</code> server manager.</li>
+      <li><strong>Deterministic verification</strong> — the harness runs the real test suite as a gate (fail-fast back to the coder), lint/syntax self-heal after every edit, and whitespace-tolerant edits with live colorized diffs.</li>
+      <li><strong>Structural repo index</strong> (<code>wells-index</code>, Rust/tree-sitter, on PyPI) — instant symbol lookups plus a goal-ranked repo map injected into planner/coder prompts.</li>
+      <li><strong>Git safety net</strong> — every run snapshots the working tree; <code>/undo</code> reverts a run; per-node session checkpoints make <code>/resume</code> crash-proof; opt-in auto-commits.</li>
+      <li><strong>MCP both directions</strong> — Wells is an MCP server for other agents <em>and</em> an MCP client that pulls external tools (databases, docs, GitHub) into the agent's toolset, all behind the safety gate.</li>
+      <li><strong>Operating modes</strong> — <code>/mode plan | approve | auto | dryrun</code>, parallel read-only research fan-out, per-run token budgets, cheap-model routing for verification.</li>
+    </ul>
+  </section>
+
+  <!-- 1. THE BIG PICTURE -->
+  <section>
+    <h2><span class="num">1</span>The Big Picture</h2>
+    <p class="lead">One goal in, a verified code change out. Six reasoning stages run in a loop, with the middle three being <strong>autonomous tool-using agents</strong> that operate on your real workspace.</p>
+
+    <div class="flow-wrap">
+      <div class="flow">
+        <div class="node start"><span class="icon">&#9654;</span><span class="name">START</span><span class="desc">goal + workspace</span></div>
+        <span class="arrow">&rarr;</span>
+        <div class="node plan"><span class="icon">&#128203;</span><span class="name">Planner</span><span class="desc">breaks down goal</span></div>
+        <span class="arrow">&rarr;</span>
+        <div class="node plan"><span class="icon">&#127959;</span><span class="name">Architect</span><span class="desc">designs approach</span></div>
+        <span class="arrow">&rarr;</span>
+        <div class="node code"><span class="icon">&#128187;</span><span class="name">Coder</span><span class="desc">edits + verifies</span></div>
+        <span class="arrow">&rarr;</span>
+        <div class="node code"><span class="icon">&#128221;</span><span class="name">Tester</span><span class="desc">runs test suite</span></div>
+        <span class="arrow">&rarr;</span>
+        <div class="node review"><span class="icon">&#128269;</span><span class="name">Reviewer</span><span class="desc">COMPLETE?</span></div>
+        <span class="arrow">&rarr;</span>
+        <div class="node end"><span class="icon">&#9989;</span><span class="name">Finisher</span><span class="desc">memory + PR</span></div>
+      </div>
+      <span class="loop-label">&#8634; if INCOMPLETE &rarr; summarizer condenses context &rarr; back to Coder (capped at MAX_ITERATIONS)</span>
+    </div>
+
+    <div class="note">
+      <strong>What makes this Claude-like:</strong> The Coder, Tester, and Reviewer don't just <em>describe</em> what they would do &mdash; they call real tools (<code class="inline">read_file</code>, <code class="inline">edit_file</code>, <code class="inline">run_tests</code>, &hellip;) in a model-driven loop, observe the results, and iterate until the work is genuinely done. The Reviewer independently re-checks by reading the changed files and re-running tests before signing off.
+    </div>
+  </section>
+
+  <!-- 2. ARCHITECTURE LAYERS -->
+  <section>
+    <h2><span class="num">2</span>Architecture in Layers</h2>
+    <p>Five stacked layers turn any decent LLM into a safe, efficient coding agent. Each is independent and swappable.</p>
+
+    <div class="layers">
+      <div class="layer">
+        <div class="tag">L3</div>
+        <div>
+          <h3>Advanced &mdash; Memory, Git, Subagents</h3>
+          <p>AGENTS.md knowledge that accumulates across runs; automatic branch/commit/PR via git + gh; parallel research &amp; fix subagents the model can spawn.</p>
+          <div class="files">memory.py &middot; gitops.py &middot; subagents.py &middot; finisher.py</div>
+        </div>
+      </div>
+      <div class="layer">
+        <div class="tag">L2</div>
+        <div>
+          <h3>Agentic Executor &mdash; the tool-calling loop</h3>
+          <p>The heart of it. A model-driven loop: <em>model &rarr; tool calls &rarr; execute &rarr; observe &rarr; model</em>, step-capped, with native tool-calling plus a text fallback so weaker models work too.</p>
+          <div class="files">executor.py &middot; agents/{planner,architect,coder,tester,reviewer}.py</div>
+        </div>
+      </div>
+      <div class="layer">
+        <div class="tag">L1</div>
+        <div>
+          <h3>Tools &amp; Safety &mdash; how the agent acts</h3>
+          <p>Eight repo tools (read/list/glob/grep/write/edit/shell/tests) plus spawn_subagent. Every operation is workspace-confined and passes through an auto/approve/dryrun safety gate.</p>
+          <div class="files">tools.py &middot; safety.py</div>
+        </div>
+      </div>
+      <div class="layer">
+        <div class="tag">L0</div>
+        <div>
+          <h3>Providers &amp; Config &mdash; model-agnostic core</h3>
+          <p>Named provider profiles (Z.ai, OpenAI, Anthropic, Ollama, OpenRouter&hellip;) selected by env vars. Lazy imports mean it runs out-of-the-box with just one provider package.</p>
+          <div class="files">providers.py &middot; config.py &middot; settings.py (CLI menu)</div>
+        </div>
+      </div>
+      <div class="layer" style="border-left-color: var(--teal);">
+        <div class="tag" style="color: var(--teal);">&infin;</div>
+        <div>
+          <h3>Token Optimization &mdash; the efficiency layer</h3>
+          <p>tiktoken estimator (auto-calibrated), per-call ledger, categorized context trimming, log compressor, rolling summarizer, model router, cache-friendly prompt prefixes. Runs under everything.</p>
+          <div class="files">tokens.py &middot; context.py &middot; compress.py &middot; summarize.py</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. THE EXECUTOR LOOP -->
+  <section>
+    <h2><span class="num">3</span>Inside the Agentic Loop</h2>
+    <p>This is where the agent actually <em>works</em>. Each of the Coder / Tester / Reviewer nodes spawns an executor that runs this loop with its own task and toolset.</p>
+
+    <div class="flow-wrap">
+      <div class="flow" style="min-width: 820px;">
+        <div class="node plan"><span class="icon">&#129504;</span><span class="name">LLM</span><span class="desc">decides next action</span></div>
+        <span class="arrow">&rarr;</span>
+        <div class="node code"><span class="icon">&#128295;</span><span class="name">Tool Call</span><span class="desc">read/edit/run/&hellip;</span></div>
+        <span class="arrow">&rarr;</span>
+        <div class="node review"><span class="icon">&#128065;</span><span class="name">Observe</span><span class="desc">see the result</span></div>
+        <span class="arrow">&rarr;</span>
+        <div class="node plan"><span class="icon">&#129504;</span><span class="name">LLM</span><span class="desc">next step or done</span></div>
+      </div>
+      <span class="loop-label">&#8634; repeats until the model returns a final answer OR MAX_TOOL_STEPS is hit</span>
+    </div>
+
+    <div class="grid" style="margin-top: 20px;">
+      <div class="card">
+        <h3>Native tool-calling</h3>
+        <p>Models that support OpenAI/Anthropic-style <code class="inline">tool_calls</code> (Z.ai GLM, GPT, Claude, Gemini&hellip;) bind the tool schemas directly. Fastest, most reliable path.</p>
+        <span class="pill">auto-detected</span>
+      </div>
+      <div class="card">
+        <h3>Text fallback</h3>
+        <p>Models without native tool support emit <code class="inline">&lt;tool_call&gt;{json}&lt;/tool_call&gt;</code> blocks in their text. The harness parses and dispatches them &mdash; so <em>any</em> decent AI can drive it.</p>
+        <span class="pill">universal compatibility</span>
+      </div>
+      <div class="card">
+        <h3>Subagent spawning</h3>
+        <p>The model can call <code class="inline">spawn_subagent</code> to delegate a focused research (read-only) or fix task &mdash; keeping the parent's context lean. Runs in parallel via threads.</p>
+        <span class="pill">token-efficient parallelism</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. TOOLS -->
+  <section>
+    <h2><span class="num">4</span>The Tool Layer</h2>
+    <p>Eight tools cover the full edit-test-verify cycle. Reads are always allowed; writes and shell commands pass through the safety gate.</p>
+
+    <div class="badges">
+      <span class="badge ro">read_file</span>
+      <span class="badge ro">list_dir</span>
+      <span class="badge ro">glob</span>
+      <span class="badge ro">grep</span>
+      <span class="badge mut">write_file</span>
+      <span class="badge mut">edit_file</span>
+      <span class="badge mut">run_command</span>
+      <span class="badge mut">run_tests</span>
+      <span class="badge">spawn_subagent</span>
+    </div>
+    <p style="font-size: 0.85em; color: var(--muted); margin-top: 8px;">
+      <span class="badge ro" style="padding: 2px 8px;">green</span> = read-only, always allowed &nbsp;&middot;&nbsp;
+      <span class="badge mut" style="padding: 2px 8px;">orange</span> = mutating, safety-gated &nbsp;&middot;&nbsp;
+      <span class="badge" style="padding: 2px 8px;">teal</span> = delegation
+    </p>
+
+    <h3 style="margin-top: 28px; color: var(--orange);">Safety policy (<code class="inline">HARNESS_SAFETY</code>)</h3>
+    <table>
+      <thead><tr><th>Mode</th><th>Behaviour</th></tr></thead>
+      <tbody>
+        <tr><td><code>auto</code></td><td>Execute immediately, confined to <code>WORKSPACE_ROOT</code>. Destructive commands (<code>rm -rf /</code>, <code>mkfs</code>&hellip;) are always blocked.</td></tr>
+        <tr><td><code>approve</code></td><td>Require an approval callback. Degrades to dry-run when no callback is wired, so nothing destructive happens unattended.</td></tr>
+        <tr><td><code>dryrun</code></td><td>Never execute &mdash; tools describe what they <em>would</em> do. Truly side-effect free.</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top: 10px;"><code class="inline">PLAN_MODE=1</code> forces all mutating tools to simulate, so you can preview exactly what the agent would change before allowing it.</p>
+  </section>
+
+  <!-- 5. PROVIDERS -->
+  <section>
+    <h2><span class="num">5</span>Any Model, One Harness</h2>
+    <p>Models are configured as named <strong>profiles</strong>. One is active (main reasoning), one optionally cheap (summarize/compress subtasks). Switch providers with a single env var &mdash; no code changes.</p>
+
+    <div class="chips">
+      <div class="chip"><span class="dot green"></span> Z.ai GLM (default)</div>
+      <div class="chip"><span class="dot blue"></span> OpenAI</div>
+      <div class="chip"><span class="dot purple"></span> Anthropic Claude</div>
+      <div class="chip"><span class="dot orange"></span> OpenRouter</div>
+      <div class="chip"><span class="dot green"></span> Ollama (local)</div>
+      <div class="chip"><span class="dot blue"></span> Together / Groq / Fireworks</div>
+      <div class="chip"><span class="dot purple"></span> DeepSeek / Mistral</div>
+      <div class="chip"><span class="dot orange"></span> Any vLLM / local endpoint</div>
+    </div>
+
+    <div class="note" style="margin-top: 18px;">
+      The built-in <code class="inline">zai</code> profile uses the <strong>coding endpoint</strong> <code class="inline">/api/coding/paas/v4/</code> required by GLM-4.x/5.x. Legacy <code class="inline">ZAI_*</code> env vars still work and seed this profile. Explicit <code class="inline">MODEL_zai</code> / <code class="inline">BASE_URL_zai</code> / <code class="inline">API_KEY_zai</code> take precedence.
+    </div>
+  </section>
+
+  <!-- 6. TOKEN OPTIMIZATION -->
+  <section>
+    <h2><span class="num">6</span>Token Efficiency</h2>
+    <p>Every call is tracked and trimmed. Here's a typical run's token budget visualized:</p>
+
+    <div class="token-bar">
+      <div style="background: var(--accent); width: 18%;">System</div>
+      <div style="background: var(--green); width: 35%;">Durable context</div>
+      <div style="background: var(--orange); width: 28%;">Tool history</div>
+      <div style="background: var(--purple); width: 12%;">Output</div>
+      <div style="background: var(--teal); width: 7%;">Reasoning</div>
+    </div>
+    <p style="font-size: 0.82em; color: var(--muted);">Approximate composition of tokens billed in a multi-step agent run.</p>
+
+    <div class="grid">
+      <div class="card"><h3>Estimator + Ledger</h3><p>tiktoken-based, auto-calibrated against real API responses. Per-step actuals (input/output/reasoning/cache_read) captured from <code class="inline">usage_metadata</code>.</p></div>
+      <div class="card"><h3>Context trimming</h3><p>Categorized chunks, stable-prefix ordering for prompt-cache hits, priority-based budget trimming when over budget.</p></div>
+      <div class="card"><h3>Log compressor</h3><p>Strips ANSI, collapses duplicates/blanks, keeps a tail window, preserves tracebacks. Tool outputs auto-compressed before going back to the model.</p></div>
+      <div class="card"><h3>Rolling summarizer</h3><p>On loop iterations, verbatim plan/architecture is replaced with a summary once durable context exceeds <code class="inline">SUMMARIZE_THRESHOLD</code>.</p></div>
+      <div class="card"><h3>Model router</h3><p>Low-stakes tasks (summarization, compression, classification) route to <code class="inline">MODEL_PROFILE_CHEAP</code> when configured.</p></div>
+      <div class="card"><h3>Cache-friendly prefix</h3><p>SystemMessage + deterministic chunk order maximizes provider-side prompt-cache hits &mdash; visible as <code class="inline">cache_read</code> savings in the report.</p></div>
+    </div>
+  </section>
+
+  <!-- 7. MCP -->
+  <section>
+    <h2><span class="num">7</span>MCP Server &mdash; talk to it from anywhere</h2>
+    <p>The harness runs as a <strong>Model Context Protocol</strong> server over stdio, so external agent clients (Claude Code, OpenCode, Codex CLIs, Gemini CLI&hellip;) can invoke it.</p>
+
+    <div class="badges">
+      <span class="badge">run_agent_task</span>
+      <span class="badge">plan_task</span>
+      <span class="badge">review_code</span>
+      <span class="badge">run_executor</span>
+      <span class="badge">spawn_subagent</span>
+      <span class="badge ro">search_repo</span>
+      <span class="badge ro">read_file</span>
+      <span class="badge mut">run_command</span>
+      <span class="badge ro">git_status</span>
+      <span class="badge ro">get_memory</span>
+      <span class="badge">compress_logs</span>
+      <span class="badge">get_harness_info</span>
+    </div>
+    <p style="margin-top: 14px;">Start it with <code class="inline">coding-harness-mcp</code> or <code class="inline">python -m coding_harness</code>. The MCP layer is deliberately thin &mdash; it delegates every call to the harness core, no duplicated logic.</p>
+  </section>
+
+  <!-- 8. CLI -->
+  <section>
+    <h2><span class="num">8</span>Command Line</h2>
+    <table>
+      <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>coding-harness</code></td><td>Launch the interactive chat REPL</td></tr>
+        <tr><td><code>coding-harness "&lt;goal&gt;"</code></td><td>Run the full harness on a goal (single-shot)</td></tr>
+        <tr><td><code>coding-harness --plan "&lt;goal&gt;"</code></td><td>Plan mode: plan edits without applying them</td></tr>
+        <tr><td><code>coding-harness config</code></td><td>Interactive settings menu (all 22 settings, persists to .env)</td></tr>
+        <tr><td><code>coding-harness info</code></td><td>Show effective configuration</td></tr>
+        <tr><td><code>coding-harness "&lt;goal&gt;" MAX_ITERATIONS=5</code></td><td>Inline setting override</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top: 14px;">Running <code class="inline">coding-harness</code> with no arguments opens a rich, interactive chat REPL (similar to Claude Code or OpenCode). It maintains conversational context across multiple goals and streams output tokens live to your terminal. Inside the REPL, you can type your goals naturally or use slash commands (<code class="inline">/help</code>, <code class="inline">/config</code>, <code class="inline">/info</code>, <code class="inline">/plan</code>, <code class="inline">/quit</code>).</p>
+  </section>
+
+  <div class="note">
+    <strong>Bottom line:</strong> Wells gives you a Claude-Code-class agent experience driven by <em>whatever model you have access to</em> &mdash; local or cloud, cheap or premium &mdash; with safety rails, token efficiency, and project memory that compounds over time.
+  </div>
+
+</div>
+
+<footer>
+  Wells Coding Harness &middot; model-agnostic agentic coding &middot; <a href="readme.html" style="color: var(--accent);">View README</a>
+</footer>
+
+</body>
+</html>

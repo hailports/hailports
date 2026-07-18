@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Live board — hailports</title>
+<meta name="description" content="The live board — anonymized AI-assisted business workflows with aggregate metrics, cloaked activity, owner-gated outward actions, and real-time status refreshing every few seconds.">
+<link rel="canonical" href="https://www.hailports.com/live">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="hailports — the live board">
+<meta property="og:description" content="An anonymized live operations board: aggregate metrics, source-safe activity, owner-gated outward actions, and continuous status refreshing every few seconds.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.hailports.com/live">
+<meta property="og:site_name" content="hailports">
+<meta property="og:image" content="https://www.hailports.com/og/live-board.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="hailports — the live board">
+<meta name="twitter:description" content="An anonymized live operations board: aggregate metrics, source-safe activity, owner-gated outward actions, and continuous status refreshing every few seconds.">
+<meta name="twitter:image" content="https://www.hailports.com/og/live-board.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2305080d'/%3E%3Ctext x='16' y='22' font-size='18' text-anchor='middle' fill='%2339d98a' font-family='monospace'%3E%E2%9D%AF%3C/text%3E%3C/svg%3E">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#05080d; --bg2:#070b12; --panel:#0a121b; --panel2:#0c1622;
+    --line:#15212f; --grn:#39d98a; --cyn:#22d3ee; --ink:#e6f1ec; --mut:#8aa0b0;
+    --red:#ff6b81; --amb:#ffd479;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  html{overflow-x:clip}
+  img,svg,video,canvas{max-width:100%;height:auto}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;
+    -webkit-font-smoothing:antialiased;width:100%;max-width:100%;overflow-x:clip;
+    background:
+      radial-gradient(1100px 560px at 88% -8%,rgba(34,211,238,.10),transparent 60%),
+      radial-gradient(900px 500px at -8% 8%,rgba(57,217,138,.09),transparent 55%),
+      var(--bg);
+    min-height:100vh;display:flex;flex-direction:column}
+  a{color:var(--cyn);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{width:100%;max-width:1200px;margin:0 auto;padding:0 20px}
+  .mono{font-family:var(--mono)}
+
+  header{position:sticky;top:0;z-index:20;backdrop-filter:blur(10px);
+    background:rgba(5,8,13,.72);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:58px;gap:10px;position:relative}
+  .nav-right{display:flex;align-items:center;gap:18px}
+  .navtoggle{display:none;background:rgba(10,18,27,.6);border:1px solid var(--line);color:var(--ink);
+    width:40px;height:40px;border-radius:9px;font-size:17px;line-height:1;cursor:pointer;padding:0;
+    align-items:center;justify-content:center}
+  .navtoggle:hover{border-color:var(--mut)}
+  .navtoggle:focus-visible{outline:2px solid var(--grn);outline-offset:2px}
+  .brand{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-weight:700;
+    font-size:17px;color:var(--ink);letter-spacing:-.01em;white-space:nowrap}
+  .brand .mk{color:var(--grn)}
+  .brand .sl{color:var(--mut);font-weight:600}
+  .nav-links{display:flex;align-items:center;gap:18px;font-size:14px;flex-wrap:wrap;justify-content:flex-end}
+  .nav-links a{color:var(--mut)}
+  .nav-links a:hover{color:var(--ink);text-decoration:none}
+  .pill{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:12px;
+    letter-spacing:.14em;color:var(--cyn);border:1px solid var(--line);border-radius:999px;
+    padding:5px 11px;background:rgba(10,18,27,.6);white-space:nowrap}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--mut);transition:background .3s}
+  .dot.on{background:var(--grn);box-shadow:0 0 0 0 rgba(57,217,138,.7);animation:pulse 1.7s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(57,217,138,.55)}70%{box-shadow:0 0 0 12px rgba(57,217,138,0)}100%{box-shadow:0 0 0 0 rgba(57,217,138,0)}}
+
+  main{flex:1 0 auto;width:100%}
+  .top{padding:36px 0 8px}
+  .top .eyebrow{font-family:var(--mono);font-size:12.5px;color:var(--grn);letter-spacing:.16em;
+    text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .top h1{font-size:clamp(28px,5.2vw,48px);line-height:1.05;font-weight:800;letter-spacing:-.025em;
+    margin:0 0 12px;overflow-wrap:break-word}
+  .top h1 b{color:var(--grn)} .top h1 i{color:var(--cyn);font-style:normal}
+  .top p.sub{font-size:clamp(15px,2vw,18px);color:var(--mut);max-width:64ch;margin:0 0 4px;overflow-wrap:break-word}
+  .topbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:16px}
+  .upd{font-family:var(--mono);font-size:12.5px;color:var(--mut)}
+  .yt{font-family:var(--mono);font-size:12.5px;color:#ff6b81;border:1px solid var(--line);border-radius:8px;
+    padding:7px 12px;white-space:nowrap;background:rgba(255,107,129,.06)}
+  .yt:hover{border-color:#ff6b81;color:#ff8a9b;text-decoration:none}
+
+  .board{margin:22px 0 8px;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,.85fr);gap:16px;align-items:start}
+  @media(max-width:880px){.board{grid-template-columns:minmax(0,1fr)}}
+  .card{border:1px solid var(--line);border-radius:14px;
+    background:linear-gradient(180deg,var(--panel),var(--bg2));overflow:hidden;min-width:0}
+  .card .ch{display:flex;align-items:center;gap:9px;padding:12px 16px;border-bottom:1px solid var(--line);
+    font-family:var(--mono);font-size:13px;color:var(--mut)}
+  .tl{display:flex;gap:6px}.tl i{width:11px;height:11px;border-radius:50%;display:inline-block}
+  .tl .r{background:#ff5f56}.tl .y{background:#ffbd2e}.tl .g{background:#27c93f}
+  .ch b{color:var(--ink)}
+
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line)}
+  @media(max-width:520px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .tile{background:var(--panel2);padding:16px 16px 15px;min-height:96px;display:flex;flex-direction:column;
+    justify-content:center}
+  .tile .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700;color:var(--grn);
+    line-height:1.05;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+  .tile .l{margin-top:6px;font-size:12.5px;font-weight:600;color:var(--ink)}
+  .tile .s{margin-top:3px;font-size:11px;color:var(--mut);line-height:1.35}
+  .flash{animation:flash .7s ease}
+  @keyframes flash{0%{color:var(--cyn);text-shadow:0 0 14px rgba(34,211,238,.5)}100%{}}
+  @media(prefers-reduced-motion:reduce){.dot.on,.livebadge .lb-dot,.flash{animation:none}}
+
+  .feed{padding:12px 16px;font-family:var(--mono);font-size:13px;line-height:1.5;
+    display:flex;flex-direction:column;min-width:0}
+  .feed .row{display:flex;gap:8px;padding:5px 0;border-bottom:1px dashed rgba(21,33,47,.7);white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .feed .row:last-child{border-bottom:0}
+  .h{color:var(--cyn)} .t{color:var(--amb)} .a{color:var(--grn)} .d{color:var(--red)}
+  .f{color:var(--mut)} .ag{color:var(--mut);margin-left:auto;padding-left:10px}
+  .commitbar{margin-top:auto;padding-top:11px;border-top:1px solid var(--line);font-size:12.5px;
+    color:var(--mut);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .commitbar .spark{color:var(--grn);letter-spacing:1px;font-size:15px}
+  .commitbar b{color:var(--ink)}
+
+  .ytwrap{margin:16px 0 6px}
+  .ytposter{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+    width:100%;aspect-ratio:16/9;text-decoration:none;border-top:1px solid var(--line);
+    background:radial-gradient(circle at 50% 38%,#11212d,#05080d)}
+  .ytposter:hover{text-decoration:none}
+  .ytposter .play{width:76px;height:76px;border-radius:50%;background:#ff0033;color:#fff;display:flex;
+    align-items:center;justify-content:center;font-size:30px;padding-left:5px;
+    box-shadow:0 12px 34px rgba(255,0,51,.32);transition:.18s}
+  .ytposter:hover .play{transform:scale(1.08);background:#ff1a47}
+  .ytposter .ytcap{font-family:var(--mono);font-size:14px;color:var(--ink);text-align:center;padding:0 16px;
+    overflow-wrap:break-word}
+  /* click-to-load live embed (facade swaps in the real YouTube live player on tap) */
+  .streamfacade{position:relative;width:100%;aspect-ratio:16/9;border:0;cursor:pointer;color:var(--ink);
+    font-family:var(--sans);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    border-top:1px solid var(--line);background:radial-gradient(circle at 50% 38%,#11212d,#05080d);transition:.18s}
+  .streamfacade:hover{background:radial-gradient(circle at 50% 38%,#152835,#05080d)}
+  .streamfacade .play{width:76px;height:76px;border-radius:50%;background:#ff0033;color:#fff;display:flex;
+    align-items:center;justify-content:center;font-size:30px;padding-left:5px;
+    box-shadow:0 12px 34px rgba(255,0,51,.32);transition:.18s}
+  .streamfacade:hover .play{transform:scale(1.08);background:#ff1a47}
+  .streamfacade .ytcap{font-family:var(--mono);font-size:14px;color:var(--ink);text-align:center;padding:0 16px}
+  .livebadge{position:absolute;top:12px;left:12px;display:inline-flex;align-items:center;gap:8px;
+    font-family:var(--mono);font-size:11.5px;font-weight:700;letter-spacing:.12em;color:#fff;
+    background:rgba(255,0,51,.16);border:1px solid rgba(255,0,51,.5);border-radius:999px;padding:6px 12px}
+  .livebadge .lb-dot{width:9px;height:9px;border-radius:50%;background:#ff2d4f;animation:pulseR 1.7s infinite}
+  @keyframes pulseR{0%{box-shadow:0 0 0 0 rgba(255,45,79,.6)}70%{box-shadow:0 0 0 11px rgba(255,45,79,0)}100%{box-shadow:0 0 0 0 rgba(255,45,79,0)}}
+  .ytwrap iframe{display:block;width:100%;aspect-ratio:16/9;border:0}
+
+  /* funnel band: board -> free scan -> products */
+  .funnel{margin:22px 0 6px;border:1px solid var(--line);border-radius:14px;padding:22px 22px 24px;
+    background:linear-gradient(180deg,var(--panel),var(--bg2));text-align:center}
+  .funnel h2{font-size:clamp(18px,3vw,23px);font-weight:800;letter-spacing:-.02em;margin:0 0 8px}
+  .funnel p{color:var(--mut);max-width:60ch;margin:0 auto 16px;font-size:14.5px}
+  .funnel .fcta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .funnel .btn{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:14.5px;
+    padding:12px 20px;border-radius:11px;border:1px solid var(--line);transition:.16s}
+  .funnel .btn.pri{background:linear-gradient(180deg,#3ee29a,#2fb578);color:#04130c;border-color:transparent}
+  .funnel .btn.pri:hover{transform:translateY(-1px);text-decoration:none;box-shadow:0 8px 24px rgba(57,217,138,.22)}
+  .funnel .btn.sec{color:var(--ink);background:rgba(12,22,34,.6)}
+  .funnel .btn.sec:hover{border-color:var(--cyn);color:#fff;text-decoration:none}
+  @media(max-width:560px){.funnel .fcta{flex-direction:column}.funnel .btn{width:100%;justify-content:center}}
+
+  footer{flex:0 0 auto;border-top:1px solid var(--line);margin-top:34px;padding:24px 0 50px;
+    font-family:var(--mono);font-size:12px;color:var(--mut);line-height:1.7}
+  footer b{color:var(--ink)}
+  footer a{color:var(--cyn)}
+
+  @media(max-width:820px){
+    .nav{height:auto;min-height:58px;padding:9px 0;gap:8px 14px}
+    .navtoggle{display:inline-flex}
+    .nav-right{gap:12px}
+    .nav-links{position:absolute;top:calc(100% + 1px);left:0;right:0;z-index:40;
+      display:none;flex-direction:column;align-items:stretch;gap:0;
+      padding:4px 16px 10px;background:rgba(5,8,13,.98);backdrop-filter:blur(12px);
+      border-bottom:1px solid var(--line);box-shadow:0 16px 40px rgba(0,0,0,.55)}
+    .nav-links.open{display:flex}
+    .nav-links a{width:100%;padding:13px 2px;font-size:15px;color:var(--ink);border-top:1px solid var(--line)}
+    .nav-links a:first-child{border-top:0}
+  }
+  @media(max-width:600px){
+    .wrap{padding:0 16px}
+    .top{padding:28px 0 6px}
+    .yt{white-space:normal}
+  }
+</style>
+<noscript><style>@media(max-width:820px){.nav-links{position:static!important;display:flex!important;flex-direction:row;flex-wrap:wrap;justify-content:flex-end;gap:6px 14px;padding:0;background:none;border:0;box-shadow:none}.nav-links a{width:auto;border-top:0;padding:0;font-size:13px}.navtoggle{display:none!important}}</style></noscript>
+</head>
+<body>
+<header>
+  <div class="wrap nav">
+    <div class="brand"><span class="mk">❯</span> hailports <span class="sl">/ live</span></div>
+    <div class="nav-right">
+      <nav class="nav-links" id="navlinks" aria-label="primary">
+        <a href="/">home</a>
+        <a href="/#guides">guides</a>
+        <a href="https://www.youtube.com/channel/UC_NaJ6WEpYsNlq-CIGD8yAw/live" target="_blank" rel="noopener">watch live ↗</a>
+      </nav>
+      <a class="pill" href="https://www.youtube.com/channel/UC_NaJ6WEpYsNlq-CIGD8yAw/live" target="_blank" rel="noopener" style="text-decoration:none"><span class="dot" id="livedot"></span> <span id="livetxt">CONNECTING</span> <span style="opacity:.65">↗</span></a>
+      <button class="navtoggle" id="navtoggle" type="button" aria-label="open menu" aria-expanded="false" aria-controls="navlinks">☰</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="top">
+    <div class="eyebrow"><span>live board</span> &middot; <span>autonomous</span> &middot; <span>building in public</span></div>
+    <h1>anonymized operations. <b>live workflow signals,</b> <i>source-safe by design.</i></h1>
+    <p class="sub">aggregate metrics, cloaked activity, reversible local changes, and owner-gated outward actions. these numbers move on their own, refreshing every few seconds without exposing operator details or private sources.</p>
+    <div class="topbar">
+      <a class="yt" href="https://www.youtube.com/channel/UC_NaJ6WEpYsNlq-CIGD8yAw/live" target="_blank" rel="noopener">▶ watch live on YouTube ↗</a>
+      <span class="upd" id="updated">syncing…</span>
+    </div>
+  </section>
+
+  <section class="board">
+    <div class="card">
+      <div class="ch"><span class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></span> <b>metrics</b> — aggregate, anonymized, live</div>
+      <div class="metrics" id="metrics"><!--METRICS_FALLBACK--></div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></span> <b>git --live</b> <span style="color:var(--mut)">// commits cloaked</span></div>
+      <div class="feed">
+        <div id="feed"></div>
+        <div class="commitbar">
+          <span class="spark" id="spark">▁▁▁▁▁▁▁▁▁▁▁▁▁▁</span>
+          <span><b id="ctotal">—</b> commits &middot; <span id="cweek">—</span>/wk &middot; ~<span id="cday">—</span>/day</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <style>
+    /* ── open-source + what's-new: refreshed on a cadence by tools/hailports_site_refresh.py ── */
+    .osrow{margin:18px 0 6px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+    @media(max-width:880px){.osrow{grid-template-columns:minmax(0,1fr)}}
+    .os-body{padding:16px}
+    .os-badge{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;
+      font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--grn);
+      border:1px solid var(--line);border-radius:999px;padding:5px 10px;background:rgba(57,217,138,.07);
+      margin-bottom:12px}
+    .os-badge .osd{width:8px;height:8px;border-radius:50%;background:var(--grn);
+      box-shadow:0 0 0 0 rgba(57,217,138,.6);animation:pulse 1.9s infinite}
+    .os-body h3{font-size:16px;font-weight:800;letter-spacing:-.01em;margin:0 0 6px}
+    .os-body p{color:var(--mut);font-size:13.5px;margin:0 0 14px;max-width:52ch}
+    .os-body .btn{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:13.5px;
+      padding:10px 16px;border-radius:10px;border:1px solid transparent;
+      background:linear-gradient(180deg,#3ee29a,#2fb578);color:#04130c;transition:.16s}
+    .os-body .btn:hover{transform:translateY(-1px);text-decoration:none;box-shadow:0 8px 24px rgba(57,217,138,.22)}
+    .wn-list{list-style:none}
+    .wn-list li{display:flex;gap:10px;align-items:flex-start;padding:11px 16px;
+      border-bottom:1px solid var(--line);font-size:13.5px;color:var(--ink);min-width:0}
+    .wn-list li:last-child{border-bottom:0}
+    .wn-list li .wn-dot{flex:0 0 auto;margin-top:6px;width:7px;height:7px;border-radius:50%;background:var(--grn)}
+  </style>
+  <section class="osrow">
+    <div class="card">
+      <div class="ch"><span class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></span> <b>open source now</b> — the machine, in public</div>
+      <div class="os-body">
+        <span class="os-badge"><span class="osd"></span> live on GitHub</span>
+        <h3>the machine is open source</h3>
+        <p>the self-running back office is public — a double-entry ledger and a nine-seat autopilot org, plus a self-healing agent and a reusable dev kit.</p>
+        <a class="btn" href="https://github.com/hailports" target="_blank" rel="noopener">browse the code on GitHub →</a>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></span> <b>what's new</b> <span style="color:var(--mut)">// recently, auto-updated</span></div>
+      <ul class="wn-list" id="wnlist">
+<!--WHATS_NEW_START-->
+        <li><span class="wn-dot"></span><span>open-sourced the self-running back office so anyone can read how it works</span></li>
+        <li><span class="wn-dot"></span><span>kept the live board streaming around the clock, self-healing as it went</span></li>
+        <li><span class="wn-dot"></span><span>shipped fresh build-in-public proof onto the board</span></li>
+<!--WHATS_NEW_END-->
+      </ul>
+    </div>
+  </section>
+
+  <section class="card ytwrap">
+    <div class="ch"><span class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></span> <b>live stream</b> — the whole board, streaming 24/7 on YouTube</div>
+    <button class="streamfacade" type="button" onclick="loadStream(this)"
+            aria-label="play the live YouTube stream — watch the AI run real business processes">
+      <span class="livebadge"><span class="lb-dot"></span> LIVE · 24/7</span>
+      <span class="play">▶</span>
+      <span class="ytcap">watch an AI run real business processes — live ▶</span>
+    </button>
+  </section>
+
+  <section class="funnel">
+    <h2>want this running for your business?</h2>
+    <p>this is the same machine, pointed at your business. start free: see whether AI even names you when buyers ask — then grab the fix.</p>
+    <div class="fcta">
+      <a class="btn pri" href="https://www.hailports.com/ai-visibility/check">does AI name your business? free scan →</a>
+      <a class="btn sec" href="/products.html">see what you can buy →</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    # hailports &middot; <a href="/">hailports.com</a> &middot; the live board &nbsp;|&nbsp; metrics are aggregate, anonymized &amp; auto-refreshing &middot; numbers rounded + ranged &middot; commits cloaked &middot; the operator stays anonymous — on purpose
+  </div>
+</footer>
+
+<script>
+(function(){
+  var ENDPOINT = "https://intake.hailports.com/live.json";
+  var dot=document.getElementById("livedot"), ltxt=document.getElementById("livetxt"),
+      upd=document.getElementById("updated"), mEl=document.getElementById("metrics"),
+      fEl=document.getElementById("feed");
+  var lastVals={};
+
+  function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+
+  function renderMetrics(arr){
+    if(!arr||!arr.length) return;
+    mEl.innerHTML = arr.map(function(t){
+      var changed = lastVals[t.label]!==undefined && lastVals[t.label]!==t.value;
+      lastVals[t.label]=t.value;
+      return '<div class="tile"><div class="v'+(changed?' flash':'')+'">'+esc(t.value)+
+        '</div><div class="l">'+esc(t.label)+'</div>'+
+        (t.sub?'<div class="s">'+esc(t.sub)+'</div>':'')+'</div>';
+    }).join("");
+  }
+
+  function renderFeed(c){
+    if(!c) return;
+    var feed=c.feed||[];
+    fEl.innerHTML = feed.slice(0,12).map(function(r){
+      return '<div class="row"><span class="h">'+esc(r.hash)+'</span>'+
+        '<span class="t">'+esc(r.type)+'</span>'+
+        '<span class="a">+'+esc(r.adds)+'</span><span class="d">-'+esc(r.dels)+'</span>'+
+        '<span class="f">('+esc(r.files)+'f)</span>'+
+        '<span class="ag">'+esc(r.age)+'</span></div>';
+    }).join("");
+    if(c.spark) document.getElementById("spark").textContent=c.spark;
+    if(c.total!=null) document.getElementById("ctotal").textContent=c.total;
+    if(c.week!=null) document.getElementById("cweek").textContent=c.week;
+    if(c.perday!=null) document.getElementById("cday").textContent=c.perday;
+  }
+
+  var lastOkAt=0, isLive=false;
+  function fresh(){
+    if(!lastOkAt){ upd.textContent="syncing…"; return; }
+    var s=Math.floor((Date.now()-lastOkAt)/1000);
+    upd.textContent=(isLive?"updated ":"cached · ")+s+"s ago";
+  }
+  function ok(){ dot.classList.add("on"); ltxt.textContent="LIVE"; isLive=true; lastOkAt=Date.now(); }
+  function bad(){ dot.classList.remove("on"); ltxt.textContent="CACHED"; isLive=false; }
+
+  function pull(){
+    fetch(ENDPOINT,{cache:"no-store"}).then(function(r){return r.json();}).then(function(d){
+      renderMetrics(d.metrics); renderFeed(d.commits); ok(); fresh();
+    }).catch(function(){ bad(); fresh(); });  // keep last metrics shown, just mark them cached
+  }
+  pull(); setInterval(pull, 12000); setInterval(fresh, 1000);
+})();
+
+// click-to-load the live YouTube stream in place (facade -> real embed on intent)
+function loadStream(el){
+  var box = el.parentNode;
+  box.innerHTML = '<iframe src="https://www.youtube.com/embed/live_stream?channel=UC_NaJ6WEpYsNlq-CIGD8yAw&autoplay=1" '
+    + 'title="hailports — live autonomous build stream" '
+    + 'allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
+}
+</script>
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('navlinks');
+  if(!t||!n) return;
+  function set(open){
+    n.classList.toggle('open', open);
+    t.setAttribute('aria-expanded', open?'true':'false');
+    t.setAttribute('aria-label', open?'close menu':'open menu');
+    t.textContent = open ? '✕' : '☰';
+  }
+  t.addEventListener('click', function(e){
+    e.stopPropagation();
+    var open = !n.classList.contains('open');
+    set(open);
+    if(open){ var f=n.querySelector('a'); if(f) f.focus(); }
+  });
+  n.addEventListener('click', function(e){ if(e.target.closest('a')) set(false); });
+  document.addEventListener('click', function(e){ if(n.classList.contains('open') && !e.target.closest('.nav-right')) set(false); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape' && n.classList.contains('open')){ set(false); t.focus(); } });
+})();
+</script>
+<script id="hp-beacon">(function(){try{var u="/api/hp/hit?p="+encodeURIComponent(location.pathname);if(navigator.sendBeacon){navigator.sendBeacon(u);}else{(new Image()).src=u+"&r="+Date.now();}}catch(e){}})();</script>
+</body>
+</html>

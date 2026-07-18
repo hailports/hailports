@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "session-bridge job",
+  "description": "A unit of work an agent hands off to a connector. Drop as <queue>/inbox/<id>.job.json. Connector-specific fields beyond these are allowed and passed through untouched.",
+  "type": "object",
+  "required": ["id", "channel", "body"],
+  "additionalProperties": true,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique, human-readable slug. Also the result filename."
+    },
+    "channel": {
+      "type": "string",
+      "description": "Which configured connector handles this job (e.g. email, chat)."
+    },
+    "action": {
+      "type": "string",
+      "description": "Optional connector hint, e.g. reply | new.",
+      "default": "reply"
+    },
+    "to": {
+      "type": "string",
+      "description": "Primary recipient/target, in whatever form the connector expects."
+    },
+    "cc": { "type": "string", "description": "Optional secondary recipients." },
+    "subject": { "type": "string", "description": "Optional subject/title." },
+    "thread": {
+      "type": "string",
+      "description": "Optional hint identifying an existing thread to reply into (e.g. sender + subject words)."
+    },
+    "body": {
+      "type": "string",
+      "description": "The message content, written in the operator's voice (see prompts/STYLE.md). The connector owns final formatting/signature."
+    },
+    "origin": {
+      "type": "string",
+      "description": "Free label for where the job came from, echoed into the result."
+    }
+  }
+}

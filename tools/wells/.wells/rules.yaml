@@ -1,0 +1,77 @@
+# Machine-enforceable rules for the Wells rules engine (see RULES.md for the
+# human stories). Loaded from the workspace's .wells/rules.yaml, merged over
+# ~/.wells/rules.yaml (global). Enforced deterministically at the tool
+# boundary — the model cannot forget these.
+#
+# Fields:
+#   id:       unique slug (rule text is injected by id when triggered)
+#   severity: block     — refuse the action outright
+#             confirm   — pause and ask the user (TUI approval prompt)
+#             warn      — execute, but inject the rule into the model's
+#                         observation so it acts on it immediately
+#             liability — 'open' pattern registers an obligation that MUST be
+#                         discharged (close pattern) before the run may end
+#   trigger:  { tool: <tool-name or omit for any>, pattern: <regex on args> }
+#   open/close: regexes (liability rules) matched against run_command commands
+#   message:  the text injected/shown when the rule fires
+
+rules:
+  # ── R1: paid resources are liabilities until proven closed ───────────────
+  - id: gpu-rental-teardown
+    severity: liability
+    open: '\b(vastai|vast\.ai)\s+(create|launch)|\brunpod(ctl)?\s+(create|start|resume)|\brunpod\.(create_pod|resume_pod)|\blambda\s+cloud.*(launch|start)|\bgcloud\s+compute\s+instances\s+create|\baws\s+ec2\s+run-instances|\baz\s+vm\s+create'
+    close: '\b(vastai|vast\.ai)\s+(destroy|stop)|\brunpod(ctl)?\s+(remove|stop|terminate)|\brunpod\.(terminate_pod|stop_pod)|\blambda\s+cloud.*(terminate|delete)|\bgcloud\s+compute\s+instances\s+(delete|stop)|\baws\s+ec2\s+(terminate|stop)-instances|\baz\s+vm\s+(delete|deallocate)'
+    message: >-
+      RULE R1: You just started a PAID cloud resource. It is now a tracked
+      liability. You MUST terminate it (and verify termination with a status
+      check) before this task can be considered complete. State your
+      termination plan now.
+
+  # ── R13: automation must be non-interactive ──────────────────────────────
+  - id: interactive-destroy
+    severity: warn
+    trigger: { tool: run_command, pattern: '\bvastai\s+destroy\s+instance\s+\d+\s*$' }
+    message: >-
+      RULE R13: 'vastai destroy' without --yes blocks on an interactive prompt
+      and will hang in automation. Re-run with --yes.
+
+  # ── R12: never bulk-copy the project tree to remote machines ─────────────
+  - id: no-bulk-rsync
+    severity: confirm
+    trigger: { tool: run_command, pattern: '\b(rsync|scp)\b(?=.*\b(\w+@[\w.\-]+|ssh)\b).*(\s\.\s|\s\./\s|\*\s|\s~?/?(home|Projects|workspace)/?\s)' }
+    message: >-
+      RULE R12: This looks like a bulk copy of a whole directory tree to a
+      remote host. Copy only the files the job needs; exclude archives, logs,
+      caches, and gitignored artifacts. Confirm this transfer is intentional.
+
+  # ── destructive git actions ───────────────────────────────────────────────
+  - id: no-force-push
+    severity: confirm
+    trigger: { tool: run_command, pattern: '\bgit\s+push\b.*(\s--force\b|\s-f\b)' }
+    message: >-
+      Force-push rewrites remote history. Confirm this is intentional.
+
+  - id: no-hard-reset-clean
+    severity: confirm
+    trigger: { tool: run_command, pattern: '\bgit\s+(reset\s+--hard|clean\s+-[a-z]*f)' }
+    message: >-
+      This git command permanently discards uncommitted work. Confirm.
+
+  # ── R7: verify credentials before long-running dependent jobs ────────────
+  - id: auth-preflight
+    severity: warn
+    trigger: { tool: run_command, pattern: '\b(nohup|setsid|screen|tmux)\b.*\b(train|upload|deploy|sync)\b|\bhuggingface-cli\s+upload|\bhf\s+upload' }
+    message: >-
+      RULE R7: This starts a long-running job that likely depends on external
+      auth. Verify the token/credentials with ONE live authenticated call
+      FIRST (e.g. whoami). Cached tokens expire; a 401 one minute in wastes
+      the whole run.
+
+  # ── R8/R19: monitors must check process liveness, not log strings ────────
+  - id: no-logstring-monitors
+    severity: warn
+    trigger: { tool: write_file, pattern: 'grep\s+-q?\s*["\x27](FAILED|ERROR|DONE|COMPLETE)' }
+    message: >-
+      RULE R8: This looks like a log-string monitor. Monitors must check
+      PROCESS LIVENESS (kill -0 / pgrep) — tracebacks, OOM kills, and silent
+      deaths never print your sentinel string.

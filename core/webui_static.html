@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WorkOS Chat</title>
+<style>
+:root{--bg:#f5f5f7;--panel:#fff;--border:#e5e5ea;--text:#1d1d1f;--muted:#86868b;--accent:#007aff;--accent2:#34c759;--hover:#f2f2f7}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+.nav{display:flex;align-items:center;gap:14px;padding:10px 20px;background:rgba(255,255,255,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);flex-shrink:0}
+.nav .logo{font-size:16px;font-weight:700;color:var(--text);cursor:pointer}.nav .logo span{color:var(--accent)}
+.nav .spacer{flex:1}
+.nav a{color:var(--accent);text-decoration:none;font-size:13px;padding:5px 14px;border-radius:20px;background:rgba(0,122,255,.08);font-weight:500}
+.nav a.active{background:rgba(0,122,255,.15);font-weight:600}
+.app{display:flex;flex:1;min-height:0}
+.sidebar{width:280px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.sidebar-header h3{font-size:14px;font-weight:600}
+.sidebar-header button{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;font-weight:500}
+.thread-list{flex:1;overflow-y:auto}
+.thread-item{padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s}
+.thread-item:hover{background:var(--hover)}
+.thread-item.active{background:rgba(0,122,255,.08);border-left:3px solid var(--accent)}
+.thread-item .t-title{font-size:13px;font-weight:500;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.thread-item .t-preview{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.thread-item .t-time{font-size:10px;color:var(--muted);float:right}
+.chat-area{flex:1;display:flex;flex-direction:column;min-width:0}
+.messages{flex:1;overflow-y:auto;padding:20px 24px}
+.msg{margin-bottom:16px;display:flex;gap:10px}
+.msg.user{justify-content:flex-end}
+.msg .bubble{max-width:75%;padding:12px 16px;border-radius:18px;font-size:14px;line-height:1.5;word-wrap:break-word}
+.msg.user .bubble{background:var(--accent);color:#fff;border-bottom-right-radius:6px}
+.msg.assistant .bubble{background:var(--panel);border:1px solid var(--border);color:var(--text);border-bottom-left-radius:6px;white-space:pre-wrap}
+.input-area{padding:12px 24px 16px;border-top:1px solid var(--border);background:var(--panel)}
+.input-row{display:flex;gap:8px;align-items:flex-end}
+.input-row textarea{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:14px;font-size:14px;font-family:inherit;outline:none;resize:none;max-height:120px;min-height:42px;line-height:1.4;color:var(--text)}
+.input-row textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,122,255,.1)}
+.input-row .send-btn{padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:600;cursor:pointer}
+.upload-btn{background:none;border:1px solid var(--border);border-radius:10px;padding:8px 12px;cursor:pointer;font-size:16px;color:var(--muted)}
+.upload-btn:hover{background:var(--hover);color:var(--accent)}
+.file-preview{display:flex;gap:8px;padding:6px 0;flex-wrap:wrap}
+.file-chip{display:flex;align-items:center;gap:4px;padding:4px 10px;background:var(--hover);border-radius:8px;font-size:11px}
+.file-chip button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px}
+@media(max-width:700px){
+  .sidebar{position:fixed;left:-280px;top:0;height:100vh;z-index:40;transition:left .3s;box-shadow:4px 0 20px rgba(0,0,0,.1)}
+  .sidebar.open{left:0}
+  .messages{padding:12px 14px}
+  .input-area{padding:8px 14px 12px}
+  .msg .bubble{max-width:85%}
+}
+</style>
+</head>
+<body>
+<div class="nav">
+  <div class="logo" onclick="document.getElementById('sidebar').classList.toggle('open')">Work<span>OS</span></div>
+  <div class="spacer"></div>
+  <a href="/">Dashboard</a>
+  <a href="/control">Control</a>
+  <a href="/chat" class="active">Chat</a>
+</div>
+<div class="app">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h3>Threads</h3>
+      <button onclick="newThread()">+ New</button>
+    </div>
+    <div class="thread-list" id="threadList"></div>
+  </div>
+  <div class="chat-area">
+    <div class="messages" id="messages"></div>
+    <div class="input-area">
+      <div class="file-preview" id="filePreview"></div>
+      <div class="input-row">
+        <button class="upload-btn" onclick="document.getElementById('fileInput').click()" title="Upload file">📎</button>
+        <input type="file" id="fileInput" style="display:none" accept="image/*,.pdf,.txt,.md,.html,.csv,.docx" onchange="handleFiles(this)" multiple>
+        <textarea id="chatInput" placeholder="Message..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}" oninput="this.style.height='42px';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
+        <button class="send-btn" onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+var API_KEY='changeme',currentThread='general',pendingFiles=[];
+function E(id){return document.getElementById(id)}
+
+async function loadThreads(){
+  try{
+    var r=await(await fetch('/api/threads')).json();
+    var threads=r.threads||[];
+    E('threadList').innerHTML=threads.map(function(t){
+      var a=t.id===currentThread?' active':'';
+      var tm=t.last_message_at?new Date(t.last_message_at*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
+      return '<div class="thread-item'+a+'" onclick="switchThread(\''+t.id+'\')"><span class="t-time">'+tm+'</span><div class="t-title">'+(t.title||'General').replace(/</g,'&lt;')+'</div><div class="t-preview">'+(t.last_preview||'').replace(/</g,'&lt;')+'</div></div>';
+    }).join('');
+  }catch(e){console.error(e)}
+}
+
+function switchThread(id){currentThread=id;loadThreads();loadMessages()}
+
+async function newThread(){
+  var t=prompt('Thread name:');
+  if(!t)return;
+  var r=await(await fetch('/api/threads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:t})})).json();
+  if(r.thread)currentThread=r.thread.id;
+  loadThreads();loadMessages();
+}
+
+async function loadMessages(){
+  try{
+    var r=await(await fetch('/api/threads/'+currentThread+'/messages')).json();
+    var msgs=r.messages||[];
+    var el=E('messages');
+    if(!msgs.length){el.innerHTML='<div style="text-align:center;color:var(--muted);padding:60px 20px;font-size:15px">Start a conversation<br><span style="font-size:12px;margin-top:8px;display:block">Upload files, ask questions, generate documents</span></div>';return}
+    el.innerHTML=msgs.map(function(m){
+      var cls=m.role==='user'?'user':'assistant';
+      var text='';
+      if(typeof m.content==='string')text=m.content;
+      else if(Array.isArray(m.content))m.content.forEach(function(b){if(b.type==='text')text+=b.text});
+      text=text.replace(/</g,'&lt;').replace(/\n/g,'<br>');
+      var files=(m.file_refs&&m.file_refs.length)?'<div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:4px">📎 '+m.file_refs.length+' file(s)</div>':'';
+      return '<div class="msg '+cls+'"><div class="bubble">'+text+files+'</div></div>';
+    }).join('');
+    el.scrollTop=el.scrollHeight;
+  }catch(e){console.error(e)}
+}
+
+async function sendMessage(){
+  var inp=E('chatInput');
+  var text=inp.value.trim();
+  if(!text&&!pendingFiles.length)return;
+  var el=E('messages');
+  var fb=pendingFiles.length?'<div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:4px">📎 '+pendingFiles.length+' file(s)</div>':'';
+  el.innerHTML+='<div class="msg user"><div class="bubble">'+text.replace(/</g,'&lt;').replace(/\n/g,'<br>')+fb+'</div></div>';
+  el.innerHTML+='<div class="msg assistant" id="pending"><div class="bubble" style="color:var(--muted)">Thinking...</div></div>';
+  el.scrollTop=el.scrollHeight;
+  inp.value='';inp.style.height='42px';
+
+  var fileIds=[];
+  for(var i=0;i<pendingFiles.length;i++){
+    var fd=new FormData();fd.append('file',pendingFiles[i]);
+    try{var ur=await(await fetch('/v1/upload',{method:'POST',body:fd})).json();if(ur.file_id)fileIds.push(ur.file_id)}catch(e){}
+  }
+  pendingFiles=[];E('filePreview').innerHTML='';
+
+  try{
+    var body={model:'claude-sonnet',messages:[{role:'user',content:text}],thread_id:currentThread};
+    if(fileIds.length)body.file_ids=fileIds;
+    var r=await(await fetch('/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+API_KEY,'X-User-ID':'Operator'},body:JSON.stringify(body)})).json();
+    var reply=(r.choices&&r.choices[0]&&r.choices[0].message&&r.choices[0].message.content)||'No response';
+    E('pending').querySelector('.bubble').innerHTML=reply.replace(/</g,'&lt;').replace(/\n/g,'<br>');
+    E('pending').id='';
+  }catch(e){E('pending').querySelector('.bubble').innerHTML='<span style="color:#ff3b30">Error: '+e.message+'</span>';E('pending').id=''}
+  el.scrollTop=el.scrollHeight;
+  loadThreads();
+}
+
+function handleFiles(inp){pendingFiles=pendingFiles.concat(Array.from(inp.files));inp.value='';renderFiles()}
+function renderFiles(){E('filePreview').innerHTML=pendingFiles.map(function(f,i){return '<div class="file-chip">📎 '+f.name+'<button onclick="pendingFiles.splice('+i+',1);renderFiles()">×</button></div>'}).join('')}
+
+loadThreads();loadMessages();
+</script>
+</body>
+</html>
